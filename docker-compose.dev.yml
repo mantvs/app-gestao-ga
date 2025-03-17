@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  analytics-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: analytics-backend
+    volumes:
+      - .:/workspace:cached
+    ports:
+      - "8000:8000"
+    depends_on:
+      - analytics-db
+      - analytics-redis
+    environment:
+      - DATABASE_URL=mysql://root:root@analytics-db:3306/analytics
+      - REDIS_URL=redis://analytics-redis:6379/0
+    networks:
+      - analytics-network
+
+  analytics-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: analytics-frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - analytics-backend
+    networks:
+      - analytics-network
+
+  analytics-db:
+    image: mysql:8
+    container_name: analytics-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: analytics
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - analytics-network
+
+  analytics-redis:
+    image: redis:latest
+    container_name: analytics-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - analytics-network
+
+  analytics-nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: analytics-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - analytics-frontend
+      - analytics-backend
+    networks:
+      - analytics-network
+
+networks:
+  analytics-network:
+    driver: bridge
+
+volumes:
+  mysql_data:

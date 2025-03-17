@@ -1,0 +1,19 @@
+{
+  "name": "Analytics Dev Container",
+  "dockerComposeFile": "../docker-compose.dev.yml",
+  "service": "analytics-backend",
+  "workspaceFolder": "/workspace",
+  "extensions": [
+    "ms-python.python",
+    "ms-azuretools.vscode-docker",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
+  ],
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "editor.formatOnSave": true
+  },
+  "remoteUser": "root"
+}
+
+
