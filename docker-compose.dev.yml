@@ -14,7 +14,7 @@ services:
       - analytics-db
       - analytics-redis
     environment:
-      - DATABASE_URL=mysql://root:root@analytics-db:3306/analytics
+      - DATABASE_URL=mysql+pymysql://analytics_gauser:FDE##sx2!@analytics-db:3306/analytics_ga
       - REDIS_URL=redis://analytics-redis:6379/0
     networks:
       - analytics-network
