@@ -1,0 +1,9 @@
+DATABASE_URL=mysql+pymysql://analytics_high:RE3aP&!!fd2!@analytics-db:3306/analytics_ga
+REDIS_HOST=analytics-redis
+REDIS_PORT=6379
+SECRET_KEY=31375033970bc0935871e8f688f4c090f69626af42af09b88df5488ff8dc994a
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+GOOGLE_CLIENT_ID=228851958410-8bpq48fkbhsrf0iq20jdi25odqrd9v8e.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/callback
