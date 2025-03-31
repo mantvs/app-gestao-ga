@@ -61,5 +61,5 @@ async def callback(code: str):
     jwt_token = jwt.encode({"email": user_email}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
     # Redireciona usuário de volta ao frontend com o token
-    frontend_url = f"http://localhost:3000/auth-suce0s?token={jwt_token}"
+    frontend_url = f"http://localhost:3000/auth-success?token={jwt_token}"
     return RedirectResponse(url=frontend_url)
