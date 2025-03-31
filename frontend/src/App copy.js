@@ -1,19 +1,27 @@
 import React, { useContext } from "react";
-import { AuthContext } from "./components/AuthContext"
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthContext } from "./components/AuthContext";
+import Home from "./pages/Home";
 
 function App() {
   const { user, loginWithGoogle } = useContext(AuthContext);
 
-  if (!user) {
-    return (
-      <div>
-        <h2>Login com Google</h2>
-        <button onClick={loginWithGoogle}>Entrar com Google</button>
-      </div>
-    );
-  }
-
-  return (<h2>Bem-vindo, {user}!</h2>);
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          user ? <Navigate to="/home" /> : (
+            <div>
+              <h2>Login com Google</h2>
+              <button onClick={loginWithGoogle}>Entrar com Google</button>
+            </div>
+          )
+        }
+      />
+      <Route path="/home" element={user ? <Home /> : <Navigate to="/" />} />
+    </Routes>
+  );
 }
 
 export default App;
