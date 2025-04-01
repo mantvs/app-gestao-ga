@@ -7,6 +7,9 @@ import "./Accounts.css"; // Arquivo CSS para os estilos
 const Account = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const goToHome = () => {
+      navigate("/home");
+    }
   
   const [accounts, setAccounts] = useState([]);
   const [newAccountEmail, setNewAccountEmail] = useState("");
@@ -105,7 +108,7 @@ const Account = () => {
         />
         <button onClick={handleAddAccount} className="add-btn">Adicionar Conta</button>
       </div>
-
+      <button onClick={goToHome} className="logout-btn">Home</button>
       <button onClick={logout} className="logout-btn">Sair</button>
     </div>
   );
