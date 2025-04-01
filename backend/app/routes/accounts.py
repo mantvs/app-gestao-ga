@@ -3,12 +3,17 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.crud import get_accounts, add_account, remove_account
 from app.schemas import AccountCreate, AccountResponse
+from app.models import GAAccount
 
 router = APIRouter()
 
 @router.get("/accounts", response_model=list[AccountResponse])
 async def list_accounts(db: Session = Depends(get_db)):
     return get_accounts(db)
+
+@router.get("/accounts_ga")
+def get_accounts(db: Session = Depends(get_db)):
+    return db.query(GAAccount).all()
 
 @router.post("/accounts", response_model=AccountResponse)
 async def add_ga_account(account: AccountCreate, db: Session = Depends(get_db)):

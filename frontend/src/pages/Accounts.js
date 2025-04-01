@@ -23,7 +23,7 @@ const Account = () => {
     // Chama a API para listar as contas do GA
     const fetchAccounts = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/ga/accounts", {
+        const response = await axios.get("http://localhost:8000/api/ga/accounts_ga", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
         setAccounts(response.data);
@@ -78,7 +78,7 @@ const Account = () => {
         ) : (
           <ul>
             {accounts.map((account) => (
-              <li key={account.account_id} className="account-item">
+              <li key={account.id} className="account-item">
                 <span>{account.email}</span>
                 <button
                   className="remove-btn"

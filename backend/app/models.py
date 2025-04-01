@@ -7,3 +7,14 @@ class GAAccount(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), nullable=False)
     account_id = Column(String(255), nullable=False)
+    user_id = Column(Integer, nullable=False)
+    access_token = Column(String(255))
+    refresh_token = Column(String(255))
+    
+class OauthCredentials(Base):
+    __tablename__ = "oauth_credentials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    access_token = Column(String(255))
+    refresh_token = Column(String(255))

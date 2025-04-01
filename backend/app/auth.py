@@ -3,6 +3,9 @@ import httpx
 import jwt
 from app.config import settings
 from fastapi.responses import RedirectResponse
+from app.database import get_db
+from app.models import GAAccount
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 
@@ -21,7 +24,7 @@ async def login():
     return {"url": google_auth_url}
 
 @router.get("/callback")
-async def callback(code: str):
+async def callback(code: str, db: Session = Depends(get_db)):
     """Recebe o código do Google e troca por um token de acesso"""
     token_url = "https://oauth2.googleapis.com/token"
     
@@ -39,6 +42,7 @@ async def callback(code: str):
 
     tokens = token_response.json()
     access_token = tokens.get("access_token")
+    refresh_token = tokens.get("refresh_token")
 
     # Obter informações do usuário autenticado    
     async with httpx.AsyncClient() as client:
@@ -59,6 +63,28 @@ async def callback(code: str):
 
     # Gera um token JWT para a sessão
     jwt_token = jwt.encode({"email": user_email}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    
+    # Armazenando Tokens e Conta do Usuário
+    
+    existing_account = db.query(GAAccount).filter(GAAccount.email == user_email).first()
+    
+    if existing_account:
+        
+        # Atualiza os tokens existentes
+        existing_account.access_token = access_token
+        existing_account.refresh_token = refresh_token
+    
+    else :
+            
+        account = GAAccount(
+            email=user_email,
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
+
+        db.add(account)
+        db.commit()
+        db.refresh(account)
 
     # Redireciona usuário de volta ao frontend com o token
     frontend_url = f"http://localhost:3000/auth-success?token={jwt_token}"

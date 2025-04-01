@@ -14,5 +14,6 @@ class Settings:
     GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
     GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
     AUTHORIZED_EMAILS = os.getenv("AUTHORIZED_EMAILS")
+    CLIENT_SECRETS_FILE = os.getenv("CLIENT_SECRETS_FILE")
 
 settings = Settings()
