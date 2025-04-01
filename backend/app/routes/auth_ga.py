@@ -85,7 +85,7 @@ async def callback(code: str, db: Session = Depends(get_db)):
         db.refresh(account)
 
     # Redireciona usuário de volta ao frontend com o token
-    frontend_url = f"http://localhost:3000/auth-success?token={jwt_token}"
+    frontend_url = f"http://localhost:3000/auth-success-ga?token={jwt_token}"
     return RedirectResponse(url=frontend_url)
 
 

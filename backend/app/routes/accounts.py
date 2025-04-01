@@ -26,3 +26,9 @@ async def add_ga_account(account: AccountCreate, db: Session = Depends(get_db)):
 async def delete_account(account_id: str, db: Session = Depends(get_db)):
     remove_account(db, account_id)
     return {"message": "Conta removida com sucesso"}
+
+# Deletar contas do GA
+@router.delete("/accounts_ga/{id}")
+async def delete_account(id: str, db: Session = Depends(get_db)):
+    remove_account(db, id)
+    return {"message": "Conta removida com sucesso"}

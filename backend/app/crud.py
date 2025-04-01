@@ -11,8 +11,8 @@ def add_account(db: Session, email: str, account_id: str):
     db.refresh(new_account)
     return new_account
 
-def remove_account(db: Session, account_id: str):
-    account = db.query(GAAccount).filter(GAAccount.account_id == account_id).first()
+def remove_account(db: Session, id: str):
+    account = db.query(GAAccount).filter(GAAccount.id == id).first()
     if account:
         db.delete(account)
         db.commit()

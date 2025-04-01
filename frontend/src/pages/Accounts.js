@@ -12,8 +12,8 @@ const Account = () => {
     }
   
   const [accounts, setAccounts] = useState([]);
-  const [newAccountEmail, setNewAccountEmail] = useState("");
-  const [newAccountId, setNewAccountId] = useState("");
+  //const [newAccountEmail, setNewAccountEmail] = useState("");
+  //const [newAccountId, setNewAccountId] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -66,11 +66,11 @@ const Account = () => {
   // Chama a API para remover contas do GA
   const handleRemoveAccount = async (accountId) => {
     try {
-      await axios.delete(`http://localhost:8000/api/ga/accounts/${accountId}`, {
+      await axios.delete(`http://localhost:8000/api/ga/accounts_ga/${accountId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       // Atualiza a lista de contas após a remoção
-      setAccounts(accounts.filter(account => account.account_id !== accountId));
+      setAccounts(accounts.filter(account => account.id !== accountId));
     } catch (error) {
       console.error("Erro ao remover conta:", error);
     }
@@ -90,7 +90,7 @@ const Account = () => {
                 <span>{account.email}</span>
                 <button
                   className="remove-btn"
-                  onClick={() => handleRemoveAccount(account.account_id)}
+                  onClick={() => handleRemoveAccount(account.id)}
                 >
                   Remover
                 </button>
