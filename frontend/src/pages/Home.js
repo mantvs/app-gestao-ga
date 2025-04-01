@@ -6,7 +6,9 @@ import "./Home.css"; // Estilos da Home
 const Home = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const urls = ["/accounts"]
+  const goToAccounts = () => {
+    navigate("/accounts");
+  }
 
   if (!user) {
     navigate("/");
@@ -16,7 +18,7 @@ const Home = () => {
   return (
     <div className="home-container">
       <h2>Bem-vindo, {user}!</h2>
-      <button onClick={urls[0]}>Gerenciar Contas</button>
+      <button onClick={goToAccounts}>Gerenciar Contas</button>
       <p></p>
       <button onClick={logout}>Sair</button>
     </div>

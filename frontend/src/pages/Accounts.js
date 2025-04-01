@@ -9,7 +9,8 @@ const Account = () => {
   const navigate = useNavigate();
   
   const [accounts, setAccounts] = useState([]);
-  const [newAccount, setNewAccount] = useState("");
+  const [newAccountEmail, setNewAccountEmail] = useState("");
+  const [newAccountId, setNewAccountId] = useState("");
 
   useEffect(() => {
     if (!user) {
@@ -31,13 +32,15 @@ const Account = () => {
     fetchAccounts();
   }, [user, navigate]);
 
+  // Chama a API para adicionar contas do GA
   const handleAddAccount = async () => {
-    if (newAccount) {
+    if (newAccountEmail) {
       try {
-        await axios.post("http://localhost:8000/api/ga/accounts", { accountName: newAccount }, {
+        await axios.post("http://localhost:8000/api/ga/accounts", { email: newAccountEmail, account_id: newAccountId }, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
-        setNewAccount("");
+        setNewAccountEmail("");
+        setNewAccountId("");
         // Atualiza a lista de contas após a adição
         const response = await axios.get("http://localhost:8000/api/ga/accounts", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -49,6 +52,7 @@ const Account = () => {
     }
   };
 
+  // Chama a API para remover contas do GA
   const handleRemoveAccount = async (accountId) => {
     try {
       await axios.delete(`http://localhost:8000/api/ga/accounts/${accountId}`, {
@@ -71,11 +75,11 @@ const Account = () => {
         ) : (
           <ul>
             {accounts.map((account) => (
-              <li key={account.id} className="account-item">
-                <span>{account.name}</span>
+              <li key={account.account_id} className="account-item">
+                <span>{account.email}</span>
                 <button
                   className="remove-btn"
-                  onClick={() => handleRemoveAccount(account.id)}
+                  onClick={() => handleRemoveAccount(account.account_id)}
                 >
                   Remover
                 </button>
@@ -89,9 +93,15 @@ const Account = () => {
         <h3>Cadastrar Nova Conta</h3>
         <input
           type="text"
-          value={newAccount}
-          onChange={(e) => setNewAccount(e.target.value)}
-          placeholder="Nome da nova conta"
+          value={newAccountEmail}
+          onChange={(e) => setNewAccountEmail(e.target.value)}
+          placeholder="Email da nova conta"
+        />
+        <input
+          type="text"
+          value={newAccountId}
+          onChange={(e) => setNewAccountId(e.target.value)}
+          placeholder="Id da nova conta"
         />
         <button onClick={handleAddAccount} className="add-btn">Adicionar Conta</button>
       </div>
