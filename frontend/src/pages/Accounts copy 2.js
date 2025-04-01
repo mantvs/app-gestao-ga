@@ -36,32 +36,24 @@ const Account = () => {
   }, [user, navigate]);
 
   // Chama a API para adicionar contas do GA
-  //const handleAddAccount = async () => {
-  // if (newAccountEmail) {
-  //    try {
-  //      await axios.post("http://localhost:8000/api/ga/accounts", { email: newAccountEmail, account_id: newAccountId }, {
-  //        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  //      });
-  //      setNewAccountEmail("");
-  //      setNewAccountId("");
-
   const handleAddAccount = async () => {
-    const response = await axios.get("http://localhost:8000/api/ga/login_ga");
-    window.location.href = response.data.url;
+    if (newAccountEmail) {
+      try {
+        await axios.post("http://localhost:8000/api/ga/accounts", { email: newAccountEmail, account_id: newAccountId }, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setNewAccountEmail("");
+        setNewAccountId("");
+        // Atualiza a lista de contas após a adição
+        const response = await axios.get("http://localhost:8000/api/ga/accounts", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        setAccounts(response.data);
+      } catch (error) {
+        console.error("Erro ao adicionar conta:", error);
+      }
+    }
   };
-
-  // Atualiza a lista de contas após a adição
-  //const fetchAccounts = async () => {
-  //  try {
-  //    const response = await axios.get("http://localhost:8000/api/ga/accounts_ga", {
-  //      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-  //    });
-  //    setAccounts(response.data);
-  //  } catch (error) {
-  //      console.error("Erro ao adicionar conta:", error);
-  //    }
-  //};
-  //fetchAccounts();
 
   // Chama a API para remover contas do GA
   const handleRemoveAccount = async (accountId) => {
@@ -100,8 +92,8 @@ const Account = () => {
         )}
       </div>
 
-     <div className="add-account">
-    {/* <h3>Cadastrar Nova Conta</h3>
+      <div className="add-account">
+        <h3>Cadastrar Nova Conta</h3>
         <input
           type="text"
           value={newAccountEmail}
@@ -113,9 +105,9 @@ const Account = () => {
           value={newAccountId}
           onChange={(e) => setNewAccountId(e.target.value)}
           placeholder="Id da nova conta"
-        /> */}
-        </div> 
+        />
         <button onClick={handleAddAccount} className="add-btn">Adicionar Conta</button>
+      </div>
       <button onClick={goToHome} className="logout-btn">Home</button>
       <button onClick={logout} className="logout-btn">Sair</button>
     </div>
