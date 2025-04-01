@@ -59,7 +59,7 @@ const Account = () => {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       // Atualiza a lista de contas após a remoção
-      setAccounts(accounts.filter(account => account.id !== accountId));
+      setAccounts(accounts.filter(account => account.account_id !== accountId));
     } catch (error) {
       console.error("Erro ao remover conta:", error);
     }
