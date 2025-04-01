@@ -10,7 +10,7 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <h2>App Gestão GA</h2>
+      <h2>Gestão GA</h2>
       <p>Faça login para continuar</p>
       <button className="google-login-button" onClick={loginWithGoogle}>
         <img src={googleIcon} alt="Google" className="google-icon" />

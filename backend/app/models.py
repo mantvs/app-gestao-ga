@@ -1,10 +1,9 @@
-from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String
+from app.database import Base
 
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: bool = False
+class GAAccount(Base):
+    __tablename__ = "ga_accounts"
 
-class UserInDB(User):
-    hashed_password: str
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False)
+    account_id = Column(String(255), nullable=False)
