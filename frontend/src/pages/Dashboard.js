@@ -10,7 +10,7 @@ const Dashboard = () => {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [trafficData, setTrafficData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [siteName, setSiteName] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
   const navigate = useNavigate();
   const goToHome = () => navigate("/home");
   const goToAccounts = () => navigate("/accounts");
@@ -43,7 +43,7 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
         setTrafficData(response.data.traffic); 
-        setSiteName(response.data.site_name);
+        setSiteUrl(response.data.site_url);
       } catch (error) {
         console.error("Erro ao buscar dados do GA:", error);
       } finally {
@@ -81,7 +81,7 @@ const Dashboard = () => {
             labels: trafficData.map((item) => item.period),
             datasets: [
               {
-                label: `Usuários Ativos - ${siteName}`,
+                label: `Usuários Ativos - ${siteUrl}`,
                 backgroundColor: "#10a37f",
                 borderColor: "#0d8a6b",
                 borderWidth: 1,
