@@ -8,8 +8,9 @@ class GAAccount(Base):
     email = Column(String(255), nullable=False)
     account_id = Column(String(255), nullable=False)
     user_id = Column(Integer, nullable=False)
-    access_token = Column(String(255))
-    refresh_token = Column(String(255))
+    access_token = Column(String(255), nullable=False)
+    refresh_token = Column(String(255), nullable=False)
+    property_id = Column(String(255), nullable=False)
     
 class OauthCredentials(Base):
     __tablename__ = "oauth_credentials"

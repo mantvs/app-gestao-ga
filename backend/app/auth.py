@@ -17,7 +17,7 @@ async def login():
         "?response_type=code"
         f"&client_id={settings.GOOGLE_CLIENT_ID}"
         f"&redirect_uri={settings.GOOGLE_REDIRECT_URI}"
-        "&scope=email%20profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.readonly"
+        "&scope=email%20profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.readonly%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.manage.users.readonly"
         "&access_type=offline"
         "&prompt=consent"
     )
@@ -64,6 +64,37 @@ async def callback(code: str, db: Session = Depends(get_db)):
     # Gera um token JWT para a sessão
     jwt_token = jwt.encode({"email": user_email}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     
+    # Buscar o GA4 Property ID do usuário
+    async with httpx.AsyncClient() as client:
+        analytics_admin_url = "https://analyticsadmin.googleapis.com/v1beta/accounts"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        accounts_response = await client.get(analytics_admin_url, headers=headers)
+
+    if accounts_response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Erro ao obter contas do Google Analytics")
+
+    accounts_data = accounts_response.json()
+    
+    if not accounts_data.get("accounts"):
+        raise HTTPException(status_code=404, detail="Nenhuma conta GA4 encontrada")
+
+    account_id = accounts_data["accounts"][0]["name"].split("/")[-1]
+
+    # Buscar propriedades (property_id) da conta
+    async with httpx.AsyncClient() as client:
+        properties_url = f"https://analyticsadmin.googleapis.com/v1beta/properties?filter=parent:accounts/{account_id}"
+        properties_response = await client.get(properties_url, headers=headers)
+
+    if properties_response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Erro ao obter propriedades do GA4")
+
+    properties_data = properties_response.json()
+    
+    if not properties_data.get("properties"):
+        raise HTTPException(status_code=404, detail="Nenhuma propriedade GA4 encontrada")
+
+    property_id = properties_data["properties"][0]["name"].split("/")[-1]
+    
     # Armazenando Tokens e Conta do Usuário
     
     existing_account = db.query(GAAccount).filter(GAAccount.email == user_email).first()
@@ -79,7 +110,8 @@ async def callback(code: str, db: Session = Depends(get_db)):
         account = GAAccount(
             email=user_email,
             access_token=access_token,
-            refresh_token=refresh_token
+            refresh_token=refresh_token,
+            property_id=property_id            
         )
 
         db.add(account)
