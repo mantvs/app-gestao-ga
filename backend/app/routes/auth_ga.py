@@ -19,7 +19,7 @@ async def login():
         "?response_type=code"
         f"&client_id={settings.GOOGLE_CLIENT_ID}"
         f"&redirect_uri={settings.GOOGLE_REDIRECT_URI_GA}"
-        "&scope=email%20profile"
+        "&scope=email%20profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.readonly"
         "&access_type=offline"
         "&prompt=consent"
     )
