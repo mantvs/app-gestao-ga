@@ -10,6 +10,9 @@ const Account = () => {
   const goToHome = () => {
       navigate("/home");
     }
+  const goToDashboard = () => {
+      navigate("/dashboard");
+    }
   
   const [accounts, setAccounts] = useState([]);
   //const [newAccountEmail, setNewAccountEmail] = useState("");
@@ -117,6 +120,7 @@ const Account = () => {
         </div> 
         <button onClick={handleAddAccount} className="add-btn">Adicionar Conta</button>
       <button onClick={goToHome} className="logout-btn">Home</button>
+      <button onClick={goToDashboard} className="logout-btn">Dashboard</button>
       <button onClick={logout} className="logout-btn">Sair</button>
     </div>
   );
