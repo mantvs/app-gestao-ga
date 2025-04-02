@@ -89,7 +89,7 @@ async def callback(code: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Erro ao obter propriedades do GA4")
 
     properties_data = properties_response.json()
-    
+        
     if not properties_data.get("properties"):
         raise HTTPException(status_code=404, detail="Nenhuma propriedade GA4 encontrada")
 

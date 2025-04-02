@@ -4,7 +4,6 @@ import httpx
 import jwt
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.services.analytics_service import get_analytics_data
 from app.database import get_db
 from app.config import settings
 from app.models import GAAccount
