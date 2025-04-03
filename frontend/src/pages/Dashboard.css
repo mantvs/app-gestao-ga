@@ -21,6 +21,24 @@ h2 {
   border: 1px solid #ccc;
 }
 
+.view-selector {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.host-selector {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
 p {
   text-align: center;
   color: #666;

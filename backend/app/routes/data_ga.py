@@ -11,30 +11,6 @@ from google.analytics.data_v1beta.types import Dimension
 
 router = APIRouter()
 
-# Função para buscar a URL do site
-async def get_site_url(property_id: str, access_token: str):
-    # Buscar os Web Data Streams associados à propriedade GA4
-    url_streams = f"https://analyticsadmin.googleapis.com/v1beta/properties/{property_id}/webDataStreams"
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    async with httpx.AsyncClient() as client:
-        response_streams = await client.get(url_streams, headers=headers)
-
-    if response_streams.status_code != 200:
-        print(response_streams.status_code, response_streams.text)  # Testa a resposta da API
-        return "URL não disponível"
-
-    streams_data = response_streams.json()
-    print("Resposta da API:", streams_data)
-    
-    if not streams_data.get("webDataStreams"):
-        return "URL não disponível"
-
-    # Pegar a primeira URL associada ao Web Data Stream
-    site_url = streams_data["webDataStreams"][0].get("defaultUri", "URL não disponível")
-    
-    return site_url
-
 # Função para buscar dados do GA4
 async def get_ga_traffic(property_id: str, access_token: str):
     credentials = Credentials(token=access_token)
@@ -59,19 +35,29 @@ async def get_ga_traffic(property_id: str, access_token: str):
         for date_range in date_ranges
     ]
 
-    traffic_data = []
+    traffic_data = {}
+    consolidated_traffic = [0] * len(date_ranges)  # Armazena soma dos usuários ativos
+    
     periods = ["Hoje", "7 dias atrás", "Mês anterior", "Últimos 6 meses"]
 
     for idx, request in enumerate(report_requests):
         response = client.run_report(request)
-        active_users = int(response.rows[0].metric_values[0].value) if response.rows else 0
-        traffic_data.append({"period": periods[idx], "activeUsers": active_users})
         
-    site_url = await get_site_url(property_id, access_token)
-    
-    HostName = response.rows[0].dimension_values[0].value if response.rows else "URL não disponível"
+        if response.rows:
+            for row in response.rows:
+                host = row.dimension_values[0].value
+                active_users = int(row.metric_values[0].value)
 
-    return {"site_url": HostName, "traffic": traffic_data}
+                if host not in traffic_data:
+                    traffic_data[host] = [{"period": periods[i], "activeUsers": 0} for i in range(len(date_ranges))]
+
+                traffic_data[host][idx]["activeUsers"] = active_users
+                consolidated_traffic[idx] += active_users  # Soma usuários ativos
+        
+    return {
+        "traffic": traffic_data,
+        "consolidated": [{"period": periods[i], "activeUsers": consolidated_traffic[i]} for i in range(len(date_ranges))]
+    }
 
 @router.get("/data_ga")
 async def get_data_ga(property_id: str, db: Session = Depends(get_db)):

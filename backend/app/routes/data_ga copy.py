@@ -1,16 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import RunReportRequest, DateRange, Metric
 from sqlalchemy.orm import Session
 from app.database import get_db
+import httpx
 from app.models import GAAccount
 from google.oauth2.credentials import Credentials
 from app.utils.periods import get_last_month_range
+from google.analytics.data_v1beta.types import Dimension
 
 router = APIRouter()
 
 # Função para buscar dados do GA4
-def get_ga_traffic(property_id: str, access_token: str):
+async def get_ga_traffic(property_id: str, access_token: str):
     credentials = Credentials(token=access_token)
     client = BetaAnalyticsDataClient(credentials=credentials)
     
@@ -27,7 +29,8 @@ def get_ga_traffic(property_id: str, access_token: str):
         RunReportRequest(
             property=f"properties/{property_id}",
             date_ranges=[date_range],
-            metrics=[Metric(name="activeUsers")]
+            metrics=[Metric(name="activeUsers")],
+            dimensions=[Dimension(name="HostName")]
         )
         for date_range in date_ranges
     ]
@@ -39,14 +42,16 @@ def get_ga_traffic(property_id: str, access_token: str):
         response = client.run_report(request)
         active_users = int(response.rows[0].metric_values[0].value) if response.rows else 0
         traffic_data.append({"period": periods[idx], "activeUsers": active_users})
+    
+    HostName = response.rows[0].dimension_values[0].value if response.rows else "URL não disponível"
 
-    return {"traffic": traffic_data}
+    return {"site_url": HostName, "traffic": traffic_data}
 
 @router.get("/data_ga")
-def get_data_ga(property_id: str, db: Session = Depends(get_db)):
+async def get_data_ga(property_id: str, db: Session = Depends(get_db)):
     account = db.query(GAAccount).filter(GAAccount.property_id == property_id).first()
     
     if not account:
         return {"error": "Conta do GA não encontrada"}
 
-    return get_ga_traffic(property_id, account.access_token)
+    return await get_ga_traffic(property_id, account.access_token)
