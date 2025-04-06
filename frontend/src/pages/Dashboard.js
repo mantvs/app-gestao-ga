@@ -10,10 +10,13 @@ const Dashboard = () => {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [trafficData, setTrafficData] = useState({});
   const [consolidatedData, setConsolidatedData] = useState([]);
-  const [selectedView, setSelectedView] = useState("Individual"); // Novo dropdown
+  const [selectedView, setSelectedView] = useState("Individual");
   const [selectedHost, setSelectedHost] = useState("");
+  const [topPages, setTopPages] = useState({});
+  const [selectedPagesView, setSelectedPagesView] = useState("Individual");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
   const goToHome = () => navigate("/home");
   const goToAccounts = () => navigate("/accounts");
 
@@ -31,7 +34,6 @@ const Dashboard = () => {
         console.error("Erro ao buscar contas do GA:", error);
       }
     };
-
     fetchAccounts();
   }, []);
 
@@ -45,9 +47,15 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
+        console.log("📊 Dados recebidos do backend:", response.data);
+
         setTrafficData(response.data.traffic);
         setConsolidatedData(response.data.consolidated);
+        setTopPages(response.data.topPages);
+        console.log("🔍 topPages:", response.data.topPages);
         setSelectedHost(Object.keys(response.data.traffic)[0] || "");
+        console.log("🌐 selectedHost:", Object.keys(response.data.traffic)[0]);
+
       } catch (error) {
         console.error("Erro ao buscar dados do GA:", error);
       } finally {
@@ -66,16 +74,19 @@ const Dashboard = () => {
     setSelectedHost(e.target.value);
   };
 
+  console.log("📄 topPages[selectedHost]:", topPages[selectedHost]);
+  console.log("labels", topPages[selectedHost]?.map((p) => p.pagePath));
+
+
   return (
     <div className="dashboard-container">
       <h2>Dashboard do Google Analytics</h2>
 
-      {/* Dropdown para selecionar a conta */}
       <select
         className="account-selector"
         value={selectedAccount?.property_id || ""}
         onChange={(e) => {
-          const account = accounts.find(acc => acc.property_id === e.target.value);
+          const account = accounts.find((acc) => acc.property_id === e.target.value);
           setSelectedAccount(account);
         }}
       >
@@ -86,13 +97,11 @@ const Dashboard = () => {
         ))}
       </select>
 
-      {/* Dropdown para selecionar "Individual" ou "Consolidado" */}
       <select className="view-selector" value={selectedView} onChange={handleViewChange}>
         <option value="Individual">Individual</option>
         <option value="Consolidado">Consolidado</option>
       </select>
 
-      {/* Dropdown para escolher o site quando está no modo "Individual" */}
       {selectedView === "Individual" && (
         <select className="host-selector" value={selectedHost} onChange={handleHostChange}>
           {Object.keys(trafficData).map((host) => (
@@ -106,7 +115,7 @@ const Dashboard = () => {
       {loading ? (
         <p>Carregando dados...</p>
       ) : selectedView === "Individual" ? (
-        trafficData[selectedHost] ? (
+        selectedHost && trafficData[selectedHost] ? (
           <Bar
             data={{
               labels: trafficData[selectedHost].map((item) => item.period),
@@ -120,12 +129,7 @@ const Dashboard = () => {
                 },
               ],
             }}
-            options={{
-              responsive: true,
-              plugins: {
-                legend: { display: true },
-              },
-            }}
+            options={{ responsive: true, plugins: { legend: { display: true } } }}
           />
         ) : (
           <p>Nenhum dado disponível para este Host</p>
@@ -144,14 +148,53 @@ const Dashboard = () => {
               },
             ],
           }}
-          options={{
-            responsive: true,
-            plugins: {
-              legend: { display: true },
-            },
-          }}
+          options={{ responsive: true, plugins: { legend: { display: true } } }}
         />
       )}
+
+      <h3>Páginas mais acessadas</h3>
+      <select
+        className="view-selector"
+        value={selectedPagesView}
+        onChange={(e) => setSelectedPagesView(e.target.value)}
+      >
+        <option value="Individual">Individual</option>
+        <option value="Consolidado">Consolidado</option>
+      </select>
+
+      {selectedPagesView === "Individual" ? (
+        selectedHost &&
+        topPages &&
+        topPages[selectedHost] &&
+        Array.isArray(topPages[selectedHost]) &&
+        topPages[selectedHost].length > 0 ? (
+          <Bar
+            data={{
+              labels: topPages[selectedHost]?.map((page) => page.pagePath) || [],
+              datasets: [
+                {
+                  label: "Visualizações de Página",
+                  backgroundColor: "#3b82f6",
+                  borderColor: "#1e3a8a",
+                  borderWidth: 1,
+                  data: topPages[selectedHost]?.map((page) => page.views) || [],
+                },
+              ],
+            }}
+            options={{
+              responsive: true,
+              plugins: { legend: { display: true } },
+            }}
+          />
+        ) : (
+          <p>Nenhuma página acessada encontrada</p>
+        )
+      ) : (
+        <p>Modo consolidado ainda não implementado</p>
+      )}
+
+
+
       <button onClick={goToHome} className="logout-btn">Home</button>
       <button onClick={goToAccounts} className="logout-btn">Gerenciar Contas</button>
     </div>
