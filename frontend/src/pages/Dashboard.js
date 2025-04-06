@@ -47,14 +47,11 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
-        console.log("📊 Dados recebidos do backend:", response.data);
-
         setTrafficData(response.data.traffic);
         setConsolidatedData(response.data.consolidated);
         setTopPages(response.data.topPages);
-        console.log("🔍 topPages:", response.data.topPages);
         setSelectedHost(Object.keys(response.data.traffic)[0] || "");
-        console.log("🌐 selectedHost:", Object.keys(response.data.traffic)[0]);
+
 
       } catch (error) {
         console.error("Erro ao buscar dados do GA:", error);
@@ -73,10 +70,6 @@ const Dashboard = () => {
   const handleHostChange = (e) => {
     setSelectedHost(e.target.value);
   };
-
-  console.log("📄 topPages[selectedHost]:", topPages[selectedHost]);
-  console.log("labels", topPages[selectedHost]?.map((p) => p.pagePath));
-
 
   return (
     <div className="dashboard-container">
