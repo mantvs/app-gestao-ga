@@ -10,7 +10,7 @@ body {
   
   .login-container {
     background-color: #fff;
-    padding: 2rem;  
+    padding: 0rem;  
     text-align: center;
     justify-items: center;
     max-width: 400px;
@@ -43,7 +43,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 80%;
+    width: 100%;
     border-radius: 10px;
     cursor: pointer;
     transition: background 0.3s;
