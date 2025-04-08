@@ -9,13 +9,23 @@ body {
   }
   
   .login-container {
-    background-color: #ebecf1;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background-color: #fff;
+    padding: 2rem;  
     text-align: center;
+    justify-items: center;
     max-width: 400px;
     width: 100%;
+  }
+
+  .app-logo-login {
+    max-width: 100px;
+    width: 100%;
+  }
+
+  .app-title-login {
+    font-size: 2.5em;
+    font-weight: 900;
+    margin: 15px;
   }
   
   h2 {
@@ -25,21 +35,22 @@ body {
   
   .google-login-button {
     background-color: #ffffff;
-    color: #406f92;
-    border: 1px;
-    padding: 10px 20px;
+    color: #000;
+    border: 1px solid;
+    border-color: #d4d2d2;
+    padding: 13px 8px;
     font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    border-radius: 4px;
+    width: 80%;
+    border-radius: 10px;
     cursor: pointer;
     transition: background 0.3s;
   }
   
   .google-login-button:hover {
-    background-color: #e0e0e0;
+    background-color: #E6EEFF;
   }
   
   .google-icon {

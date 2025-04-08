@@ -1,3 +1,4 @@
 ./backend/.env
 backend/.env
 docker-compose.dev.yml
+plan/
