@@ -25,7 +25,7 @@ async def login():
 
 @router.get("/callback")
 async def callback(code: str, db: Session = Depends(get_db)):
-    """Recebe o código do Google e troca por um token de acesso"""
+    """Recebe o código do Google e troca por um token de acesso, coletando todas as propriedades GA4 disponíveis."""
     token_url = "https://oauth2.googleapis.com/token"
 
     async with httpx.AsyncClient() as client:
@@ -44,7 +44,7 @@ async def callback(code: str, db: Session = Depends(get_db)):
     access_token = tokens.get("access_token")
     refresh_token = tokens.get("refresh_token")
 
-    # Obter informações do usuário autenticado
+    # Obter informações do usuário autenticado    
     async with httpx.AsyncClient() as client:
         userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -62,7 +62,7 @@ async def callback(code: str, db: Session = Depends(get_db)):
     # Gera o JWT de sessão
     jwt_token = jwt.encode({"email": user_email}, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
-    # Buscar todas as contas GA4
+    # Buscar todas as contas GA4 disponíveis
     async with httpx.AsyncClient() as client:
         analytics_admin_url = "https://analyticsadmin.googleapis.com/v1beta/accounts"
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -71,55 +71,59 @@ async def callback(code: str, db: Session = Depends(get_db)):
     if accounts_response.status_code != 200:
         raise HTTPException(status_code=400, detail="Erro ao obter contas do Google Analytics")
 
-    accounts = accounts_response.json().get("accounts", [])
-    if not accounts:
-        raise HTTPException(status_code=404, detail="Nenhuma conta GA4 encontrada")
+    accounts_data = accounts_response.json().get("accounts", [])
+    if not accounts_data:
+        raise HTTPException(status_code=404, detail="Nenhuma conta GA encontrada")
 
-    # Buscar propriedades de todas as contas
+    # Iterar por todas as contas e coletar todas as propriedades GA4
     all_properties = []
-
     async with httpx.AsyncClient() as client:
-        for account in accounts:
+        for account in accounts_data:
             account_id = account["name"].split("/")[-1]
             properties_url = f"https://analyticsadmin.googleapis.com/v1beta/properties?filter=parent:accounts/{account_id}"
             props_response = await client.get(properties_url, headers=headers)
-
             if props_response.status_code == 200:
                 props_data = props_response.json()
                 properties = props_data.get("properties", [])
                 for prop in properties:
-                    property_id = prop["name"].split("/")[-1]
+                    prop_id = prop["name"].split("/")[-1]
                     all_properties.append({
-                        "property_id": property_id,
+                        "property_id": prop_id,
                         "account_id": account_id,
+                        "display_name": prop.get("displayName", ""),
+                        "time_zone": prop.get("timeZone", ""),
                         "email": user_email
                     })
 
     if not all_properties:
         raise HTTPException(status_code=404, detail="Nenhuma propriedade GA4 encontrada")
 
-    # Armazenar todas as propriedades no banco (uma por vez)
+    # Armazenar (criar ou atualizar) todas as propriedades no banco, permitindo múltiplos registros para um mesmo usuário
     for prop in all_properties:
-        # Verifica se já existe um registro com mesmo email + property_id
+        # Aqui usamos prop["property_id"] ao invés de uma variável externa
         existing_account = db.query(GAAccount).filter(
             GAAccount.email == user_email,
-            GAAccount.property_id == property_id
+            GAAccount.property_id == prop["property_id"]
         ).first()
 
         if existing_account:
             existing_account.access_token = access_token
             existing_account.refresh_token = refresh_token
+            existing_account.account_id = prop["account_id"]
         else:
-            account = GAAccount(
+            new_record = GAAccount(
                 email=user_email,
                 access_token=access_token,
                 refresh_token=refresh_token,
-                property_id=property_id
+                property_id=prop["property_id"],
+                account_id=prop["account_id"],
+                display_name=prop["display_name"],
+                time_zone=prop["time_zone"]
             )
-            db.add(account)
-            db.commit()
-            db.refresh(account)
+            db.add(new_record)
 
-    # Redireciona o usuário com o token
+    db.commit()
+
+    # Redireciona o usuário para o frontend com o token JWT
     frontend_url = f"http://localhost:3000/auth-success?token={jwt_token}"
     return RedirectResponse(url=frontend_url)
