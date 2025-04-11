@@ -6,11 +6,12 @@ class GAAccount(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), nullable=False)
-    account_id = Column(String(255), nullable=False)
     access_token = Column(String(255), nullable=False)
     refresh_token = Column(String(255), nullable=False)
+    account_id = Column(String(255), nullable=False)
+    account_name = Column(String(255), nullable=False)    
     property_id = Column(String(255), nullable=False)
-    display_name = Column(String(255), nullable=False)
+    property_name = Column(String(255), nullable=False)
     time_zone = Column(String(255), nullable=False)
     
 class OauthCredentials(Base):

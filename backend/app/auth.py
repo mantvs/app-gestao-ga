@@ -67,19 +67,21 @@ async def callback(code: str, db: Session = Depends(get_db)):
         analytics_admin_url = "https://analyticsadmin.googleapis.com/v1beta/accounts"
         headers = {"Authorization": f"Bearer {access_token}"}
         accounts_response = await client.get(analytics_admin_url, headers=headers)
-
+  
     if accounts_response.status_code != 200:
         raise HTTPException(status_code=400, detail="Erro ao obter contas do Google Analytics")
 
     accounts_data = accounts_response.json().get("accounts", [])
+       
     if not accounts_data:
         raise HTTPException(status_code=404, detail="Nenhuma conta GA encontrada")
 
     # Iterar por todas as contas e coletar todas as propriedades GA4
-    all_properties = []
+    all_accounts_and_properties = []
     async with httpx.AsyncClient() as client:
         for account in accounts_data:
             account_id = account["name"].split("/")[-1]
+            account_name = account["displayName"]
             properties_url = f"https://analyticsadmin.googleapis.com/v1beta/properties?filter=parent:accounts/{account_id}"
             props_response = await client.get(properties_url, headers=headers)
             if props_response.status_code == 200:
@@ -87,19 +89,22 @@ async def callback(code: str, db: Session = Depends(get_db)):
                 properties = props_data.get("properties", [])
                 for prop in properties:
                     prop_id = prop["name"].split("/")[-1]
-                    all_properties.append({
-                        "property_id": prop_id,
+                    all_accounts_and_properties.append({
                         "account_id": account_id,
-                        "display_name": prop.get("displayName", ""),
+                        "account_name": account_name,  
+                        "property_id": prop_id,                 
+                        "property_name": prop.get("displayName", ""),                                                                    
                         "time_zone": prop.get("timeZone", ""),
                         "email": user_email
                     })
+                    
+    print(f"Contas e propriedades: {all_accounts_and_properties}")
 
-    if not all_properties:
+    if not all_accounts_and_properties:
         raise HTTPException(status_code=404, detail="Nenhuma propriedade GA4 encontrada")
 
-    # Armazenar (criar ou atualizar) todas as propriedades no banco, permitindo múltiplos registros para um mesmo usuário
-    for prop in all_properties:
+    # Armazenar (criar ou atualizar) todas as contas e propriedades no banco, permitindo múltiplos registros para um mesmo usuário
+    for prop in all_accounts_and_properties:
         # Aqui usamos prop["property_id"] ao invés de uma variável externa
         existing_account = db.query(GAAccount).filter(
             GAAccount.email == user_email,
@@ -110,14 +115,18 @@ async def callback(code: str, db: Session = Depends(get_db)):
             existing_account.access_token = access_token
             existing_account.refresh_token = refresh_token
             existing_account.account_id = prop["account_id"]
+            existing_account.account_name = prop["account_name"]
+            existing_account.property_name = prop["property_name"]            
+            
         else:
             new_record = GAAccount(
                 email=user_email,
                 access_token=access_token,
                 refresh_token=refresh_token,
-                property_id=prop["property_id"],
                 account_id=prop["account_id"],
-                display_name=prop["display_name"],
+                account_name=prop["account_name"],
+                property_id=prop["property_id"],
+                property_name=prop["property_name"],
                 time_zone=prop["time_zone"]
             )
             db.add(new_record)

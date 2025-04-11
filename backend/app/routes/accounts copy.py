@@ -17,6 +17,11 @@ async def list_accounts(db: Session = Depends(get_db)):
 def get_accounts(db: Session = Depends(get_db)):
     return db.query(GAAccount).all()
 
+# Listar as contas do GA de um usuário
+@router.get("/accounts_user_ga")
+def get_accounts(email: str, db: Session = Depends(get_db)):
+    return db.query(GAAccount).filter(GAAccount.email == email).all()
+
 # Adicionar contas normais
 @router.post("/accounts", response_model=AccountResponse)
 async def add_ga_account(account: AccountCreate, db: Session = Depends(get_db)):
