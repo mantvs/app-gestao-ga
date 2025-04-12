@@ -30,7 +30,7 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAccounts(accountsRes.data);
-        await fetchData(email); // Fetch dados consolidados e individuais
+        await fetchData(email, true); // Fetch dados consolidados e individuais
       } catch (err) {
         console.error("Erro ao buscar dados iniciais:", err);
       } finally {
@@ -40,20 +40,10 @@ const Dashboard = () => {
     fetchAccounts();
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const email = localStorage.getItem("email");
-      if (email) {
-        fetchData(email);
-      }
-    }, 10000); // 10 segundos
-  
-    return () => clearInterval(interval); // limpa o intervalo ao desmontar
-  }, []);
-
-  const fetchData = async (email) => {
+  const fetchData = async (email, showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
+
       const res = await axios.get(`http://localhost:8000/api/ga/data_ga?email=${email}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
@@ -74,9 +64,20 @@ const Dashboard = () => {
     } catch (err) {
       console.error("Erro ao buscar dados do GA:", err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const email = localStorage.getItem("email");
+    const interval = setInterval(() => {      
+      if (email) {
+        fetchData(email, false);
+      }
+    }, 30000); // 30 segundos
+  
+    return () => clearInterval(interval); // limpa o intervalo ao desmontar
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -186,7 +187,7 @@ const Dashboard = () => {
                   : ["Todos os Sites/Blogs"],
                 datasets: [
                   {
-                    label: "Usuários Ativos (Realtime)",
+                    label: "Usuários Ativos (Em tempo real)",
                     data: Array.isArray(filteredData) ? filteredData.map((item) => item.users) : [filteredData],
                     backgroundColor: "rgba(75, 192, 192, 0.6)",
                   },
