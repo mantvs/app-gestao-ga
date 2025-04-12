@@ -13,9 +13,14 @@ const Dashboard = () => {
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [consolidatedRealtimeUsers, setConsolidatedRealtimeUsers] = useState(0);
+
+// Variáveis de estado para os gráficos Realtime
   const [realtimeUsers, setRealtimeUsers] = useState({});
+  const [consolidatedRealtimeUsers, setConsolidatedRealtimeUsers] = useState(0);
   const [topPagesRealtime, setTopPagesRealtime] = useState([]);
+  const [consolidatedTopPagesRealtime, setConsolidatedTopPagesRealtime] = useState([]);
+
+
   const [activeUsersPeriod, setActiveUsersPeriod] = useState([]);
   const [topPagesPeriod, setTopPagesPeriod] = useState([]);
 
@@ -51,16 +56,19 @@ const Dashboard = () => {
       const {
         consolidatedRealtimeUsers,
         realtimeUsers,
-        top_pages_realtime,
+        consolidatedRealtimeTopPages,
+        realtimeTopPages,
         active_users_period,
         top_pages_period,
       } = res.data;
-
+      
       setConsolidatedRealtimeUsers(consolidatedRealtimeUsers || 0);
       setRealtimeUsers(realtimeUsers || {});
-      setTopPagesRealtime(top_pages_realtime || []);
+      setConsolidatedTopPagesRealtime(consolidatedRealtimeTopPages || []);
+      setTopPagesRealtime(realtimeTopPages || {});
       setActiveUsersPeriod(active_users_period || []);
       setTopPagesPeriod(top_pages_period || []);
+      
     } catch (err) {
       console.error("Erro ao buscar dados do GA:", err);
     } finally {
@@ -110,6 +118,18 @@ const Dashboard = () => {
     return filtered;
   }, [selectedAccount, selectedProperty, consolidatedRealtimeUsers, realtimeUsers]);
 
+  const filteredTopPagesRealtime = useMemo(() => {
+    if (selectedAccount === "Todas" && selectedProperty === "Todas") {
+      return consolidatedTopPagesRealtime;
+    }
+  
+    const accountData = topPagesRealtime[selectedAccount] || {};
+    const propertyData = accountData[selectedProperty] || [];
+  
+    return propertyData;
+  }, [selectedAccount, selectedProperty, consolidatedTopPagesRealtime, topPagesRealtime]);
+  
+
   const accountOptions = Object.keys(realtimeUsers || {});
   const propertyOptions = selectedAccount !== "Todas"
     ? Object.keys(realtimeUsers[selectedAccount] || {})
@@ -137,7 +157,7 @@ const Dashboard = () => {
         </div>
 
         <div className="filter-group">
-          <label>Propriedade</label>
+          <label>Propriedade (Site/Blog)</label>
           {selectedAccount !== "Todas" && (
             <select value={selectedProperty} onChange={(e) => setSelectedProperty(e.target.value)}>
               <option value="Todas">Todas</option>
@@ -189,7 +209,7 @@ const Dashboard = () => {
                   {
                     label: "Usuários Ativos (Em tempo real)",
                     data: Array.isArray(filteredData) ? filteredData.map((item) => item.users) : [filteredData],
-                    backgroundColor: "rgba(75, 192, 192, 0.6)",
+                    backgroundColor: "rgb(37, 112, 253)",
                   },
                 ],
               }}
@@ -201,12 +221,12 @@ const Dashboard = () => {
             <h2>TopFivePages (Realtime)</h2>
             <Bar
               data={{
-                labels: topPagesRealtime.filter((p) => p.host === selectedHost).map((p) => p.pagePath),
+                labels: filteredTopPagesRealtime.map((p) => p.pagePath),
                 datasets: [
                   {
                     label: "Visualizações",
-                    data: topPagesRealtime.filter((p) => p.host === selectedHost).map((p) => p.views),
-                    backgroundColor: "#10b981",
+                    data: filteredTopPagesRealtime.map((p) => p.views),
+                    backgroundColor: "rgb(37, 112, 253)",
                   },
                 ],
               }}

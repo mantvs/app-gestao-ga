@@ -97,8 +97,6 @@ async def callback(code: str, db: Session = Depends(get_db)):
                         "time_zone": prop.get("timeZone", ""),
                         "email": user_email
                     })
-                    
-    print(f"Contas e propriedades: {all_accounts_and_properties}")
 
     if not all_accounts_and_properties:
         raise HTTPException(status_code=404, detail="Nenhuma propriedade GA4 encontrada")

@@ -228,9 +228,13 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
                 
         consolidated["consolidatedRealtimeUsers"] += realtime_users["total"]
 
-        # Consolida páginas mais acessadas em tempo real
+        # Obtem e consolida páginas mais acessadas em tempo real de cada conta e proriedade 
         for host, pages in realtime_pages["pages"].items():
-            consolidated["realtimeTopPages"].setdefault(host, []).extend(pages)
+            if account.account_name not in consolidated["realtime_pages"]:
+                consolidated["realtimeTopPages"][account.account_name] = {}
+            if account.property_name not in consolidated["realtime_pages"]:
+                consolidated["realtime_pages"][account.account_name][account.property_name] = \
+                consolidated["realtimeTopPages"][account.account_name][account.property_name].setdefault(host, []).extend(pages)
 
         for page in realtime_pages["consolidated"]:
             consolidated["consolidatedRealtimeTopPages"][page["pagePath"]] = consolidated["consolidatedRealtimeTopPages"].get(page["pagePath"], 0) + page["views"]
