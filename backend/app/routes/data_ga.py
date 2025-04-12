@@ -1,5 +1,7 @@
 # Imports de bibliotecas e pacotes
 from fastapi import APIRouter, Depends, HTTPException
+import redis
+import json
 from sqlalchemy.orm import Session
 from google.oauth2.credentials import Credentials
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
@@ -17,11 +19,29 @@ from app.database import get_db
 from app.models import GAAccount
 from app.utils.periods import get_last_month_range
 
+# Conecta ao Redis
+redis_client = redis.Redis(host="analytics-redis", port=6379, db=0)
+
+def get_cached_data(key):
+    cached = redis_client.get(key)
+    if cached:
+        return json.loads(cached)
+    return None
+
+def set_cached_data(key, value, ttl=30):  # TTL = tempo de vida em segundos
+    redis_client.setex(key, ttl, json.dumps(value))
+
 router = APIRouter()
 
 
 # Função: Busca dados de tráfego por período (hoje, 7 dias atrás, mês anterior, últimos 6 meses)
 async def get_ga_traffic(property_id: str, access_token: str):
+    
+    cache_key = f"ga_traffic:{property_id}"
+    cached = get_cached_data(cache_key)
+    if cached:
+        return cached    
+    
     credentials = Credentials(token=access_token)
     client = BetaAnalyticsDataClient(credentials=credentials)
     start_date, end_date = get_last_month_range()
@@ -60,7 +80,12 @@ async def get_ga_traffic(property_id: str, access_token: str):
                     traffic_data[host] = [{"period": periods[i], "activeUsers": 0} for i in range(len(date_ranges))]
                 traffic_data[host][idx]["activeUsers"] = active_users
                 consolidated_traffic[idx] += active_users
-
+                
+    set_cached_data(cache_key, {
+        "traffic": traffic_data,
+        "consolidated": [{"period": periods[i], "activeUsers": consolidated_traffic[i]} for i in range(len(date_ranges))]
+    })          
+                
     return {
         "traffic": traffic_data,
         "consolidated": [{"period": periods[i], "activeUsers": consolidated_traffic[i]} for i in range(len(date_ranges))]
@@ -69,6 +94,12 @@ async def get_ga_traffic(property_id: str, access_token: str):
 
 # Função: Busca as 10 páginas mais acessadas no período (consolidado e por host)
 async def get_top_pages(property_id: str, access_token: str):
+    
+    cache_key = f"top_pages:{property_id}"
+    cached = get_cached_data(cache_key)
+    if cached:
+        return cached    
+    
     credentials = Credentials(token=access_token)
     client = BetaAnalyticsDataClient(credentials=credentials)
     start_date, end_date = get_last_month_range()
@@ -104,6 +135,11 @@ async def get_top_pages(property_id: str, access_token: str):
         key=lambda x: x["views"],
         reverse=True
     )
+    
+    set_cached_data(cache_key, {
+        "pages": pages_data,
+        "consolidated": consolidated_pages_list[:10]
+    })
 
     return {
         "pages": pages_data,
@@ -112,6 +148,12 @@ async def get_top_pages(property_id: str, access_token: str):
 
 # 🔹 Função: Obtém o número de usuários ativos em tempo real por host (Realtime API)
 async def get_realtime_users(property_id: str, access_token: str):
+    
+    cache_key = f"realtime_users:{property_id}"
+    cached = get_cached_data(cache_key)
+    if cached:
+        return cached  
+    
     credentials = Credentials(token=access_token)
     client = BetaAnalyticsDataClient(credentials=credentials)
 
@@ -131,12 +173,23 @@ async def get_realtime_users(property_id: str, access_token: str):
             users = int(row.metric_values[0].value)
             user_data[host] = users
             total_users += users
+            
+    set_cached_data(cache_key, {
+        "hosts": user_data,
+        "total": total_users
+    })
 
     return {"hosts": user_data, "total": total_users}
 
 
 # 🔹 Função: Obtém as 5 páginas mais acessadas em tempo real por host (Realtime API)
 async def get_realtime_top_pages(property_id: str, access_token: str):
+    
+    cache_key = f"realtime_top_pages:{property_id}"
+    cached = get_cached_data(cache_key)
+    if cached:
+        return cached    
+    
     credentials = Credentials(token=access_token)
     client = BetaAnalyticsDataClient(credentials=credentials)
 
@@ -167,13 +220,24 @@ async def get_realtime_top_pages(property_id: str, access_token: str):
         key=lambda x: x["views"],
         reverse=True
     )
+    
+    set_cached_data(cache_key, {
+        "pages": pages,
+        "consolidated": consolidated_list[:5]
+    })
 
     return {"pages": pages, "consolidated": consolidated_list[:5]}
 
 
-# 🔹 Endpoint principal: Consolida todos os dados de tráfego, páginas e realtime de todas as contas GA associadas ao e-mail
+#Endpoint principal: Consolida todos os dados de tráfego, páginas e realtime de todas as contas GA associadas ao e-mail
 @router.get("/data_ga")
 async def get_data_ga(email: str, db: Session = Depends(get_db)):
+    
+    cache_key = f"data_ga:{email}"
+    cached = get_cached_data(cache_key)
+    if cached:
+        return cached    
+    
     accounts = db.query(GAAccount).filter(GAAccount.email == email).all()
     if not accounts:
         raise HTTPException(status_code=404, detail="Contas do GA não encontradas")
@@ -199,7 +263,6 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         top_pages = await get_top_pages(account.property_id, account.access_token)
         realtime_users = await get_realtime_users(account.property_id, account.access_token)
         realtime_pages = await get_realtime_top_pages(account.property_id, account.access_token)   
-        print(realtime_users)
         # Consolida dados de tráfego por host
         for host, values in traffic_data["traffic"].items():
             if host not in consolidated["traffic"]:
@@ -218,7 +281,7 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         for page in top_pages["consolidated"]:
             consolidated["consolidatedPages"][page["pagePath"]] = consolidated["consolidatedPages"].get(page["pagePath"], 0) + page["views"]
 
-        # Obtem e consolida usuários ativos em tempo real de cada proriedade
+        # Obtem e consolida usuários ativos em tempo real de cada conta e proriedade
         for host, count in realtime_users["hosts"].items():
             account_name = account.account_name
             property_name = account.property_name
@@ -248,5 +311,6 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         key=lambda x: x["views"],
         reverse=True
     )[:5]
-
+    
+    set_cached_data(cache_key, consolidated)
     return consolidated

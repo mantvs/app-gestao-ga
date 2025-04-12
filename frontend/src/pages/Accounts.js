@@ -29,6 +29,8 @@ const Account = () => {
         const response = await axios.get("http://localhost:8000/api/ga/accounts_ga", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+        const email = localStorage.getItem("email");
+        console.log(email)
         setAccounts(response.data);
       } catch (error) {
         console.error("Erro ao buscar contas:", error);

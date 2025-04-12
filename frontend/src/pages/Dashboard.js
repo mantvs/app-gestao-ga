@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { Bar, Line } from "react-chartjs-2";
 import "chart.js/auto";
@@ -6,112 +6,76 @@ import "./Dashboard.css";
 
 const Dashboard = () => {
   const [accounts, setAccounts] = useState([]);
-  const [properties, setProperties] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState("");
-  const [selectedProperty, setSelectedProperty] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState("Todas");
+  const [selectedProperty, setSelectedProperty] = useState("Todas");
   const [selectedHost, setSelectedHost] = useState("");
-  const [hosts, setHosts] = useState([]);
+
+  const [userEmail, setUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const [consolidatedRealtimeUsers, setConsolidatedRealtimeUsers] = useState(0);
+  const [realtimeUsers, setRealtimeUsers] = useState({});
   const [topPagesRealtime, setTopPagesRealtime] = useState([]);
   const [activeUsersPeriod, setActiveUsersPeriod] = useState([]);
   const [topPagesPeriod, setTopPagesPeriod] = useState([]);
-  const [userEmail, setUserEmail] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [consolidatedRealtimeUsers, setConsolidatedRealtimeUsers] = useState(0);
-  const [realtimeUsers, setRealtimeUsers] = useState({});
 
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("access_token");        
-        const email = localStorage.getItem("email");        
-
+        const token = localStorage.getItem("access_token");
+        const email = localStorage.getItem("email");
         setUserEmail(email);
-
         const accountsRes = await axios.get("http://localhost:8000/api/ga/accounts_ga", {
-          headers: { Authorization: `Bearer ${token}` },        
+          headers: { Authorization: `Bearer ${token}` },
         });
-
-        const propertiesData = accountsRes.data || [];
-
-        console.log(propertiesData);
-
-        // Extrair contas únicas
-        const uniqueAccounts = [];
-        const seenAccounts = new Set();
-
-        propertiesData.forEach((item) => {
-          if (!seenAccounts.has(item.account_id)) {
-            seenAccounts.add(item.account_id);
-            uniqueAccounts.push({
-              account_id: item.account_id,
-              display_name: item.display_name,
-            });
-          }
-        });
-
-        console.log(uniqueAccounts);
-
-        // Extrair hosts únicos
-        const uniqueHosts = [];
-        const seenHosts = new Set();
-
-        propertiesData.forEach((item) => {
-          const host = item.display_name
-           || "N/A"; 
-          if (!seenHosts.has(host)) {
-            seenHosts.add(host);
-            uniqueHosts.push({ display_name: host });
-          }
-        });
-
-        console.log(uniqueHosts);
-
-        setAccounts(uniqueAccounts);
-        setProperties(propertiesData);
-        setHosts(uniqueHosts);
-        setSelectedAccount("Todas");
-        setSelectedProperty("Todas");
-        setSelectedHost("Todos");
-
+        setAccounts(accountsRes.data);
+        await fetchData(email); // Fetch dados consolidados e individuais
       } catch (err) {
         console.error("Erro ao buscar dados iniciais:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchAccounts();
   }, []);
 
-  const fetchGAData = async (email) => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const email = localStorage.getItem("email");
+      if (email) {
+        fetchData(email);
+      }
+    }, 10000); // 10 segundos
+  
+    return () => clearInterval(interval); // limpa o intervalo ao desmontar
+  }, []);
 
+  const fetchData = async (email) => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:8000/api/ga/data_ga?email=${email}`, { 
-          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
-        }
-      );
+      const res = await axios.get(`http://localhost:8000/api/ga/data_ga?email=${email}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+      });
 
-      const { realtimeUsers, consolidatedRealtimeUsers, top_pages_realtime, active_users_period, top_pages_period } = res.data;
+      const {
+        consolidatedRealtimeUsers,
+        realtimeUsers,
+        top_pages_realtime,
+        active_users_period,
+        top_pages_period,
+      } = res.data;
 
       setConsolidatedRealtimeUsers(consolidatedRealtimeUsers || 0);
       setRealtimeUsers(realtimeUsers || {});
       setTopPagesRealtime(top_pages_realtime || []);
       setActiveUsersPeriod(active_users_period || []);
       setTopPagesPeriod(top_pages_period || []);
-
     } catch (err) {
       console.error("Erro ao buscar dados do GA:", err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePropertyChange = (e) => {
-    const propId = e.target.value;
-    setSelectedProperty(propId);
-    fetchGAData(userEmail, propId);
   };
 
   const handleLogout = () => {
@@ -120,9 +84,38 @@ const Dashboard = () => {
     window.location.href = "/login";
   };
 
+  const filteredData = useMemo(() => {
+    if (selectedAccount === "Todas" && selectedProperty === "Todas") {
+      return consolidatedRealtimeUsers;
+    }
+    const filtered = [];
+    if (selectedAccount === "Todas") {
+      for (const acc in realtimeUsers) {
+        for (const prop in realtimeUsers[acc]) {
+          filtered.push({ account: acc, property: prop, users: realtimeUsers[acc][prop] });
+        }
+      }
+    } else if (selectedProperty === "Todas") {
+      for (const prop in realtimeUsers[selectedAccount] || {}) {
+        filtered.push({ account: selectedAccount, property: prop, users: realtimeUsers[selectedAccount][prop] });
+      }
+    } else {
+      filtered.push({
+        account: selectedAccount,
+        property: selectedProperty,
+        users: realtimeUsers[selectedAccount]?.[selectedProperty] || 0,
+      });
+    }
+    return filtered;
+  }, [selectedAccount, selectedProperty, consolidatedRealtimeUsers, realtimeUsers]);
+
+  const accountOptions = Object.keys(realtimeUsers || {});
+  const propertyOptions = selectedAccount !== "Todas"
+    ? Object.keys(realtimeUsers[selectedAccount] || {})
+    : [];
+
   return (
     <div className="dashboard-wrapper">
-
       <div className="dashboard-header">
         <h1>Gestão GA</h1>
         <div className="dashboard-user">
@@ -136,82 +129,73 @@ const Dashboard = () => {
           <label>Conta GA</label>
           <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
             <option value="Todas">Todas</option>
-            {(Array.isArray(accounts) ? accounts : []).map((acc, index) => (
-              <option key={`${acc.account_id}-${index}`} value={acc.account_id}>
-                {acc.display_name}
-            </option>
+            {accountOptions.map((acc) => (
+              <option key={acc} value={acc}>{acc}</option>
             ))}
           </select>
         </div>
 
         <div className="filter-group">
           <label>Propriedade</label>
-          <select value={selectedProperty} onChange={handlePropertyChange}>
-            <option value="Todas">Todas</option>
-            {(Array.isArray(properties) ? properties : [])
-              .filter((p) => selectedAccount === "Todas" || p.account_id === selectedAccount)
-              .map((prop, index) => (
-                <option key={`${prop.property_id}-${index}`} value={prop.property_id}>
-                  {prop.property_id}
-                </option>
+          {selectedAccount !== "Todas" && (
+            <select value={selectedProperty} onChange={(e) => setSelectedProperty(e.target.value)}>
+              <option value="Todas">Todas</option>
+              {propertyOptions.map((prop) => (
+                <option key={prop} value={prop}>{prop}</option>
               ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label>Site</label>
-          <select value={selectedHost} onChange={(e) => setSelectedHost(e.target.value)}>
-            <option value="Todos">Todos</option>
-            {(Array.isArray(hosts) ? hosts : [])
-              .map((host, index) => (
-              <option key={`${host.display_name}-${index}`} value={host.display_name}>
-                {host.display_name}
-              </option>
-             ))}
-          </select>
+            </select>
+          )}
         </div>
       </div>
 
       {loading ? (
-        <div className="dashboard-loading">Carregando dados...</div>
+
+        <div className="dashboard-loading2">
+          <svg
+            className="spinner"
+            width="48"
+            height="48"
+            viewBox="0 0 44 44"
+            xmlns="http://www.w3.org/2000/svg"
+            stroke="#4f46e5"
+          >
+            <g fill="none" fillRule="evenodd" strokeWidth="4">
+              <circle cx="22" cy="22" r="20" strokeOpacity=".3" />
+              <path d="M42 22c0-11.046-8.954-20-20-20">
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from="0 22 22"
+                  to="360 22 22"
+                  dur="1s"
+                  repeatCount="indefinite"
+                />
+              </path>
+            </g>
+          </svg>
+        </div>
+
       ) : (
         <div className="dashboard-grid">
           <div className="card">
             <h2>ActiveUsers (Realtime)</h2>
             <Bar
               data={{
-                labels:
-                  selectedAccount === "Todas" &&
-                  selectedProperty === "Todas" &&
-                  selectedHost === "Todos"
-                    ? ["Total Consolidado"]
-                    : Object.keys(realtimeUsers || {}),
+                labels: Array.isArray(filteredData)
+                  ? filteredData.map((item) => `${item.account} - ${item.property}`)
+                  : ["Todos os Sites/Blogs"],
                 datasets: [
                   {
-                    label: "Usuários Ativos",
-                    data:
-                      selectedAccount === "Todas" &&
-                      selectedProperty === "Todas" &&
-                      selectedHost === "Todos"
-                        ? [consolidatedRealtimeUsers]
-                        : Object.values(realtimeUsers || {}),
-                    backgroundColor: "#3b82f6",
+                    label: "Usuários Ativos (Realtime)",
+                    data: Array.isArray(filteredData) ? filteredData.map((item) => item.users) : [filteredData],
+                    backgroundColor: "rgba(75, 192, 192, 0.6)",
                   },
                 ],
               }}
-              options={{
-                indexAxis: "y",
-                responsive: true,
-                plugins: {
-                  legend: { display: false },
-                  title: { display: true, text: "Active Users (Realtime)" },
-                },
-              }}
+              options={{ responsive: true }}
             />
-
-
           </div>
-          
+
           <div className="card">
             <h2>TopFivePages (Realtime)</h2>
             <Bar
@@ -225,10 +209,7 @@ const Dashboard = () => {
                   },
                 ],
               }}
-              options={{
-                responsive: true,
-                indexAxis: "y",
-              }}
+              options={{ responsive: true, indexAxis: "y" }}
             />
           </div>
 
@@ -264,20 +245,13 @@ const Dashboard = () => {
                   },
                 ],
               }}
-              options={{
-                responsive: true,
-                indexAxis: "y",
-              }}
+              options={{ responsive: true, indexAxis: "y" }}
             />
           </div>
-      </div>
-      )    
-      }
-
+        </div>
+      )}
     </div>
-    
-    
-  ); 
+  );
 };
 
 export default Dashboard;

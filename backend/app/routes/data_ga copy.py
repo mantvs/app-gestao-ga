@@ -198,8 +198,7 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         traffic_data = await get_ga_traffic(account.property_id, account.access_token)
         top_pages = await get_top_pages(account.property_id, account.access_token)
         realtime_users = await get_realtime_users(account.property_id, account.access_token)
-        realtime_pages = await get_realtime_top_pages(account.property_id, account.access_token)
-
+        realtime_pages = await get_realtime_top_pages(account.property_id, account.access_token)   
         # Consolida dados de tráfego por host
         for host, values in traffic_data["traffic"].items():
             if host not in consolidated["traffic"]:
@@ -218,9 +217,15 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         for page in top_pages["consolidated"]:
             consolidated["consolidatedPages"][page["pagePath"]] = consolidated["consolidatedPages"].get(page["pagePath"], 0) + page["views"]
 
-        # Consolida usuários ativos em tempo real
+        # Obtem e consolida usuários ativos em tempo real de cada conta e proriedade
         for host, count in realtime_users["hosts"].items():
-            consolidated["realtimeUsers"][host] = consolidated["realtimeUsers"].get(host, 0) + count
+            account_name = account.account_name
+            property_name = account.property_name
+            if account_name not in consolidated["realtimeUsers"]:
+                consolidated["realtimeUsers"][account_name] = {}
+            consolidated["realtimeUsers"][account_name][property_name] = \
+                consolidated["realtimeUsers"].get(property_name, 0) + count
+                
         consolidated["consolidatedRealtimeUsers"] += realtime_users["total"]
 
         # Consolida páginas mais acessadas em tempo real

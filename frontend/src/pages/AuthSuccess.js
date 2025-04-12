@@ -14,6 +14,8 @@ const AuthSuccess = () => {
       localStorage.setItem("token", token);
       const decoded = jwtDecode(token);
       console.log("Usuário autenticado:", decoded.email);
+      const email = decoded.email;
+      localStorage.setItem("email", email);
       navigate("/dashboard", { replace: true }); // Redireciona para Dashboard
     } else {
       navigate("/", { replace: true }); // Se não tiver token, volta para login
