@@ -44,13 +44,12 @@ async def get_ga_traffic(property_id: str, access_token: str):
     
     credentials = Credentials(token=access_token)
     client = BetaAnalyticsDataClient(credentials=credentials)
-    start_date, end_date = get_last_month_range()
-
+    
     # Define os períodos de consulta
     date_ranges = [
         DateRange(start_date="today", end_date="today"),
-        DateRange(start_date="7daysAgo", end_date="7daysAgo"),
-        DateRange(start_date=start_date, end_date=end_date),
+        DateRange(start_date="7daysAgo", end_date="today"),
+        DateRange(start_date="30daysAgo", end_date="today"),
         DateRange(start_date="180daysAgo", end_date="today"),
     ]
 
@@ -67,19 +66,21 @@ async def get_ga_traffic(property_id: str, access_token: str):
 
     traffic_data = {}
     consolidated_traffic = [0] * len(date_ranges)
-    periods = ["Hoje", "7 dias atrás", "Mês anterior", "Últimos 6 meses"]
+    periods = ["Hoje", "Ultimos 7 dias", "Ultimos 30 dias", "Últimos 6 meses"]
 
     # Executa os relatórios e organiza os dados por host
     for idx, request in enumerate(report_requests):
         response = client.run_report(request)
         if response.rows:
             for row in response.rows:
+                print(f"Dados recebidos do GA individualizados: ${row}")
                 host = row.dimension_values[0].value
                 active_users = int(row.metric_values[0].value)
                 if host not in traffic_data:
                     traffic_data[host] = [{"period": periods[i], "activeUsers": 0} for i in range(len(date_ranges))]
                 traffic_data[host][idx]["activeUsers"] = active_users
                 consolidated_traffic[idx] += active_users
+        print(f"Dados recebidos do GA juntos: ${response.rows}")
                 
     set_cached_data(cache_key, {
         "traffic": traffic_data,
@@ -90,7 +91,6 @@ async def get_ga_traffic(property_id: str, access_token: str):
         "traffic": traffic_data,
         "consolidated": [{"period": periods[i], "activeUsers": consolidated_traffic[i]} for i in range(len(date_ranges))]
     }
-
 
 # Obtem TopFivePages (Period in Data API)
 async def get_top_pages(property_id: str, access_token: str, period: str = "mes"):
@@ -240,11 +240,13 @@ async def get_realtime_top_pages(property_id: str, access_token: str):
 @router.get("/data_ga")
 async def get_data_ga(email: str, db: Session = Depends(get_db)):
     
+    # Redis    
     cache_key = f"data_ga:{email}"
     cached = get_cached_data(cache_key)
     if cached:
         return cached    
     
+    # Obtenção dos dados das Contas GA via BD    
     accounts = db.query(GAAccount).filter(GAAccount.email == email).all()
     if not accounts:
         raise HTTPException(status_code=404, detail="Contas do GA não encontradas")
@@ -261,29 +263,30 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         "consolidatedRealtimeTopPages": {}
     }
 
-    # Nome dos períodos para visualização
-    periods = ["Hoje", "7 dias atrás", "Mês anterior", "Últimos 6 meses"]
-
-    # Para cada conta GA vinculada ao usuário
+    # Requsições para cada conta GA vinculada ao usuário
     for account in accounts:
         traffic_data = await get_ga_traffic(account.property_id, account.access_token)
         top_pages_mes = await get_top_pages(account.property_id, account.access_token, period="mes")
         realtime_users = await get_realtime_users(account.property_id, account.access_token)
         realtime_pages = await get_realtime_top_pages(account.property_id, account.access_token) 
 
-        # Consolida dados de tráfego por host
+        # Obtem e consolida ActiveUsers (Period)
         for host, values in traffic_data["traffic"].items():
-            if host not in consolidated["traffic"]:
-                consolidated["traffic"][host] = values
+            account_name = account.account_name
+            property_name = account.property_name
+            if account_name not in consolidated["traffic"]:
+                consolidated["traffic"][account_name] = {}
+            if account.property_name not in consolidated["traffic"][account_name]:
+                consolidated["traffic"][account_name][property_name] = []
+                consolidated["traffic"][account_name][property_name] = values
             else:
                 for i in range(len(values)):
-                    consolidated["traffic"][host][i]["activeUsers"] += values[i]["activeUsers"]
+                    consolidated["traffic"][account_name][property_name][i]["activeUsers"] += values[i]["activeUsers"]
 
         for i, val in enumerate(traffic_data["consolidated"]):
             consolidated["consolidatedTraffic"][i] += val["activeUsers"]
 
-        # Obtem e consolida TopPages (Period)
-        
+        # Obtem e consolida TopPages (Period)        
         for host, pages in top_pages_mes["pages"].items():  
             account_name = account.account_name
             property_name = account.property_name          
