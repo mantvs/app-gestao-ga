@@ -1,15 +1,9 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
 import "./Dashboard.css";
-import {
-  Chart as ChartJS,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
+import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend, 
 } from 'chart.js';
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -164,7 +158,7 @@ const Dashboard = () => {
     return propertyData;
   }, [selectedAccount, selectedProperty, consolidatedTopPagesRealtime, topPagesRealtime]);
 
-  // Filtragem ActivesUsers  (Period)
+  // Filtragem ActivesUsers (Period)
   
   const filteredTraffic = useMemo(() => {
     if (selectedAccount === "Todas" && selectedProperty === "Todas") {

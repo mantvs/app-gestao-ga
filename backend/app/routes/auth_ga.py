@@ -7,6 +7,7 @@ from app.database import SessionLocal
 from app.database import get_db
 from app.config import settings
 from app.models import GAAccount
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
@@ -101,6 +102,7 @@ async def callback(code: str, db: Session = Depends(get_db)):
         # Atualiza os tokens existentes
         existing_account.access_token = access_token
         existing_account.refresh_token = refresh_token
+        existing_account.token_expires_at =datetime.now(timezone.utc) + timedelta(seconds=token_response["expires_in"])
     
     else :
             
@@ -108,7 +110,8 @@ async def callback(code: str, db: Session = Depends(get_db)):
             email=user_email,
             access_token=access_token,
             refresh_token=refresh_token,
-            property_id=property_id
+            property_id=property_id,
+            token_expires_at=datetime.now(timezone.utc) + timedelta(seconds=token_response["expires_in"])
         )
 
         db.add(account)

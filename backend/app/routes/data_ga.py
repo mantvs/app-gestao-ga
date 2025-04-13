@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 import redis
 import json
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, timedelta, timezone
+from app.config import settings
 from sqlalchemy.orm import Session
 from google.oauth2.credentials import Credentials
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
@@ -18,7 +19,7 @@ from google.analytics.data_v1beta.types import (
 # Imports do projeto
 from app.database import get_db
 from app.models import GAAccount
-from app.utils.periods import get_last_month_range
+from app.utils.refresh_token import refresh_access_token
 
 # Conecta ao Redis
 redis_client = redis.Redis(host="analytics-redis", port=6379, db=0)
@@ -234,10 +235,28 @@ async def get_realtime_top_pages(property_id: str, access_token: str):
 
     return {"pages": pages, "consolidated": consolidated_list[:5]}
 
-#Endpoint principal: Consolida todos os dados de tráfego, páginas e realtime de todas as contas GA associadas ao e-mail
+# Removação do token do usuário
+def get_valid_token(user, db): 
+    if user.token_expires_at is None:
+        token_expires_at = datetime.min.replace(tzinfo=timezone.utc)
+    elif user.token_expires_at.tzinfo is None:
+        token_expires_at = user.token_expires_at.replace(tzinfo=timezone.utc)
+    else:
+        token_expires_at = user.token_expires_at
+        
+    now_utc = datetime.now(timezone.utc)
+    
+    if now_utc >= token_expires_at:
+        new_tokem = refresh_access_token(user.refresh_token, settings.GOOGLE_CLIENT_ID, settings.GOOGLE_CLIENT_SECRET)
+        user.access_token = new_tokem["access_token"]
+        user.token_expires_at = now_utc + timedelta(seconds=new_tokem["expires_in"])
+        db.commit()  # Atualiza no banco
+    return user.access_token     
+
+#Endpoint para consolidar todos os dados de tráfego, páginas e realtime de todas as contas GA associadas ao e-mail
 @router.get("/data_ga")
 async def get_data_ga(email: str, db: Session = Depends(get_db)):
-    
+          
     # Redis    
     cache_key = f"data_ga:{email}"
     cached = get_cached_data(cache_key)
@@ -247,7 +266,10 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
     # Obtenção dos dados das Contas GA via BD    
     accounts = db.query(GAAccount).filter(GAAccount.email == email).all()
     if not accounts:
-        raise HTTPException(status_code=404, detail="Contas do GA não encontradas")
+        raise HTTPException(status_code=404, detail="Contas do GA não encontradas")  
+    
+    for user in accounts:
+        token = get_valid_token(user, db)
 
     # Estrutura base de dados consolidados
     consolidated = {

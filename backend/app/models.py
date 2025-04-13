@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime
 from app.database import Base
+from datetime import datetime
 
 class GAAccount(Base):
     __tablename__ = "ga_accounts"
@@ -13,6 +14,7 @@ class GAAccount(Base):
     property_id = Column(String(255), nullable=False)
     property_name = Column(String(255), nullable=False)
     time_zone = Column(String(255), nullable=False)
+    token_expires_at = Column(DateTime(timezone=True), nullable=True)
     
 class OauthCredentials(Base):
     __tablename__ = "oauth_credentials"
