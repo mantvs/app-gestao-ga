@@ -3,6 +3,16 @@ import axios from "axios";
 import { Bar, Line } from "react-chartjs-2";
 import "chart.js/auto";
 import "./Dashboard.css";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const Dashboard = () => {
 
@@ -11,7 +21,6 @@ const Dashboard = () => {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState("Todas");
   const [selectedProperty, setSelectedProperty] = useState("Todas");
-  const [selectedHost, setSelectedHost] = useState("");
 
 // Variáveis de estado da sessão 
 
@@ -24,7 +33,8 @@ const Dashboard = () => {
   const [consolidatedRealtimeUsers, setConsolidatedRealtimeUsers] = useState(0);
   const [topPagesRealtime, setTopPagesRealtime] = useState([]);
   const [consolidatedTopPagesRealtime, setConsolidatedTopPagesRealtime] = useState([]);
-  const [activeUsersPeriod, setActiveUsersPeriod] = useState([]);
+  const [traffic, setTraffic] = useState({});
+  const [consolidatedTraffic, setConsolidatedTraffic] = useState([]);
   const [topPages, setTopPages] = useState({});
   const [consolidatedTopPages, setConsolidatedTopPages] = useState([]);
 
@@ -66,7 +76,8 @@ const Dashboard = () => {
         realtimeUsers,
         consolidatedRealtimeTopPages,
         realtimeTopPages,
-        active_users_period,
+        traffic,
+        consolidatedTraffic,
         topPages,
         consolidatedTopPages,
       } = res.data;
@@ -75,7 +86,8 @@ const Dashboard = () => {
       setRealtimeUsers(realtimeUsers || {});
       setConsolidatedTopPagesRealtime(consolidatedRealtimeTopPages || []);
       setTopPagesRealtime(realtimeTopPages || {});
-      setActiveUsersPeriod(active_users_period || []);
+      setTraffic(traffic || {});
+      setConsolidatedTraffic(consolidatedTraffic || []);
       setTopPages(topPages || {});
       setConsolidatedTopPages(consolidatedTopPages || []);
       
@@ -107,7 +119,7 @@ const Dashboard = () => {
     window.location.href = "/login";
   };
 
-  // Filtragem UserActives (Reatime)
+  // Filtragem ActivesUsers (Reatime)
 
   const filteredData = useMemo(() => {
     if (selectedAccount === "Todas" && selectedProperty === "Todas") {
@@ -134,6 +146,11 @@ const Dashboard = () => {
     return filtered;
   }, [selectedAccount, selectedProperty, consolidatedRealtimeUsers, realtimeUsers]);
 
+  const accountOptions = Object.keys(realtimeUsers || {});
+  const propertyOptions = selectedAccount !== "Todas"
+    ? Object.keys(realtimeUsers[selectedAccount] || {})
+    : [];  
+
   // Filtragem TopFivePages (Realtime)
 
   const filteredTopPagesRealtime = useMemo(() => {
@@ -147,6 +164,22 @@ const Dashboard = () => {
     return propertyData;
   }, [selectedAccount, selectedProperty, consolidatedTopPagesRealtime, topPagesRealtime]);
 
+  // Filtragem ActivesUsers  (Period)
+  
+  const filteredTraffic = useMemo(() => {
+    if (selectedAccount === "Todas" && selectedProperty === "Todas") {
+      return consolidatedTraffic.map((value, index) => ({
+        period: ["Hoje", "Ultimos 7 dias", "Ultimos 30 dias", "Últimos 6 meses"][index],
+        activeUsers: value,
+      }));
+    }
+  
+    const accountData = traffic[selectedAccount] || {};
+    const propertyData = accountData[selectedProperty] || [];
+  
+    return propertyData;
+  }, [selectedAccount, selectedProperty, traffic, consolidatedTraffic]);
+  
   // Filtragem TopFivePages (Period) 
 
   const filteredTopPages = useMemo(() => {
@@ -160,12 +193,7 @@ const Dashboard = () => {
     return propertyData;
   }, [selectedAccount, selectedProperty, consolidatedTopPages, topPages]); 
   
-  const accountOptions = Object.keys(realtimeUsers || {});
-  const propertyOptions = selectedAccount !== "Todas"
-    ? Object.keys(realtimeUsers[selectedAccount] || {})
-    : [];  
-
-  return (
+   return (
     <div className="dashboard-wrapper">
       <div className="dashboard-header">
         <h1>Gestão GA</h1>
@@ -254,7 +282,7 @@ const Dashboard = () => {
                 labels: filteredTopPagesRealtime.map((p) => p.pagePath),
                 datasets: [
                   {
-                    label: "Páginas/Posts (Mês atual)",
+                    label: "Páginas/Posts (Em tempo real)",
                     data: filteredTopPagesRealtime.map((p) => p.views),
                     backgroundColor: "rgb(37, 112, 253)",
                   },
@@ -266,20 +294,33 @@ const Dashboard = () => {
 
           <div className="card wide">
             <h2>ActiveUsers (Period)</h2>
-            <Line
+            <Bar
               data={{
-                labels: activeUsersPeriod.filter((d) => d.host === selectedHost).map((d) => d.period),
+                labels: filteredTraffic.map((item) => item.period),
                 datasets: [
                   {
                     label: "Usuários Ativos",
-                    data: activeUsersPeriod.filter((d) => d.host === selectedHost).map((d) => d.activeUsers),
-                    backgroundColor: "#6366f1",
-                    borderColor: "#4f46e5",
-                    fill: true,
+                    data: filteredTraffic.map((item) => item.activeUsers),
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderRadius: 6,
                   },
                 ],
               }}
-              options={{ responsive: true }}
+              options={{ responsive: true,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `${context.raw} usuários`,
+                    },
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 },
+                  },
+                }, }}
             />
           </div>
 

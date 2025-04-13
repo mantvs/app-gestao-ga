@@ -73,14 +73,12 @@ async def get_ga_traffic(property_id: str, access_token: str):
         response = client.run_report(request)
         if response.rows:
             for row in response.rows:
-                print(f"Dados recebidos do GA individualizados: ${row}")
                 host = row.dimension_values[0].value
                 active_users = int(row.metric_values[0].value)
                 if host not in traffic_data:
                     traffic_data[host] = [{"period": periods[i], "activeUsers": 0} for i in range(len(date_ranges))]
                 traffic_data[host][idx]["activeUsers"] = active_users
                 consolidated_traffic[idx] += active_users
-        print(f"Dados recebidos do GA juntos: ${response.rows}")
                 
     set_cached_data(cache_key, {
         "traffic": traffic_data,
