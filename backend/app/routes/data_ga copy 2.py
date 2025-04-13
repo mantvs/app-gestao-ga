@@ -92,7 +92,8 @@ async def get_ga_traffic(property_id: str, access_token: str):
     }
 
 
-# Obtem TopFivePages (Period in Data API)
+# Retorna as 5 páginas mais acessadas por host e de forma consolidada, para os períodos:
+# "hoje", "semana", "mes", "semestre"
 async def get_top_pages(property_id: str, access_token: str, period: str = "mes"):
     
     cache_key = f"top_pages:{property_id}:{period}"
@@ -128,33 +129,38 @@ async def get_top_pages(property_id: str, access_token: str, period: str = "mes"
     )
 
     response = client.run_report(request)
-    pages_data = {}
-    consolidated_page = {}
     
-    if response.rows:   
-        for row in response.rows:
-            host = row.dimension_values[1].value
-            page = row.dimension_values[0].value
-            views = int(row.metric_values[0].value)
-            if host not in pages_data:
-                pages_data[host] = []
-            pages_data[host].append({"pagePath": page, "views": views})
-            consolidated_page[page] = consolidated_page.get(page, 0) + views
+    # Processamento dos dados
+    pages_data = {}
+    for row in response.rows:
+        host = row.dimension_values[1].value
+        page = row.dimension_values[0].value
+        views = int(row.metric_values[0].value)
+        if host not in pages_data:
+            pages_data[host] = []
+        pages_data[host].append({"pagePath": page, "views": views})
 
-    consolidated_data = sorted(
-        [{"pagePath": page, "views": views} for page, views in consolidated_page.items()],
+    # Consolidação dos dados
+    consolidated_pages = {}
+    for host, pages in pages_data.items():
+        for page in pages:
+            consolidated_pages[page["pagePath"]] = consolidated_pages.get(page["pagePath"], 0) + page["views"]
+
+    consolidated_pages_list = sorted(
+        [{"pagePath": page, "views": views} for page, views in consolidated_pages.items()],
         key=lambda x: x["views"],
         reverse=True
     )
-        
-    set_cached_data(cache_key, {
-        "pages": pages_data,
-        "consolidated": consolidated_data[:5]
-    })    
-
-    return {"pages": pages_data, "consolidated": consolidated_data[:5]}
     
-# Obtém UserActives (Realtime API)
+    payload = {
+        "pages": pages_data,
+        "consolidated": consolidated_pages_list[:10]
+    }
+
+    set_cached_data(cache_key, payload)
+    return payload
+
+# 🔹 Função: Obtém o número de usuários ativos em tempo real por host (Realtime API)
 async def get_realtime_users(property_id: str, access_token: str):
     
     cache_key = f"realtime_users:{property_id}"
@@ -190,7 +196,7 @@ async def get_realtime_users(property_id: str, access_token: str):
     return {"hosts": user_data, "total": total_users}
 
 
-# Obtém TopFivePages (Realtime API)
+# 🔹 Função: Obtém as 5 páginas mais acessadas em tempo real por host (Realtime API)
 async def get_realtime_top_pages(property_id: str, access_token: str):
     
     cache_key = f"realtime_top_pages:{property_id}"
@@ -222,7 +228,7 @@ async def get_realtime_top_pages(property_id: str, access_token: str):
                 pages[host] = []
             pages[host].append({"pagePath": page, "views": views})
             consolidated[page] = consolidated.get(page, 0) + views
-    
+
     consolidated_list = sorted(
         [{"pagePath": page, "views": views} for page, views in consolidated.items()],
         key=lambda x: x["views"],
@@ -235,6 +241,7 @@ async def get_realtime_top_pages(property_id: str, access_token: str):
     })
 
     return {"pages": pages, "consolidated": consolidated_list[:5]}
+
 
 #Endpoint principal: Consolida todos os dados de tráfego, páginas e realtime de todas as contas GA associadas ao e-mail
 @router.get("/data_ga")
@@ -282,8 +289,7 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         for i, val in enumerate(traffic_data["consolidated"]):
             consolidated["consolidatedTraffic"][i] += val["activeUsers"]
 
-        # Obtem e consolida TopPages (Period)
-        
+        # Consolida páginas mais acessadas
         for host, pages in top_pages_mes["pages"].items():  
             account_name = account.account_name
             property_name = account.property_name          
@@ -296,7 +302,7 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
         for page in top_pages_mes["consolidated"]:
           consolidated["consolidatedTopPages"][page["pagePath"]] = consolidated["consolidatedTopPages"].get(page["pagePath"], 0) + page["views"]      
         
-        # Obtem e consolida UserActives (Realtime)
+        # Obtem e consolida usuários ativos em tempo real de cada conta e proriedade
         for host, count in realtime_users["hosts"].items():
             account_name = account.account_name
             property_name = account.property_name 
@@ -307,7 +313,7 @@ async def get_data_ga(email: str, db: Session = Depends(get_db)):
                 
         consolidated["consolidatedRealtimeUsers"] += realtime_users["total"]
 
-        # Obtem e consolida TopPages (Realtime)
+        # Consolida páginas mais acessadas em tempo real
         for host, pages in realtime_pages["pages"].items():  
             account_name = account.account_name
             property_name = account.property_name          

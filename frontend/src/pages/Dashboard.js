@@ -5,24 +5,30 @@ import "chart.js/auto";
 import "./Dashboard.css";
 
 const Dashboard = () => {
+
+// Variáveis de estado para os filtros
+
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState("Todas");
   const [selectedProperty, setSelectedProperty] = useState("Todas");
   const [selectedHost, setSelectedHost] = useState("");
 
+// Variáveis de estado da sessão 
+
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
 
+// Variáveis de estado dos gráficos
 
-// Variáveis de estado para os gráficos Realtime
   const [realtimeUsers, setRealtimeUsers] = useState({});
   const [consolidatedRealtimeUsers, setConsolidatedRealtimeUsers] = useState(0);
   const [topPagesRealtime, setTopPagesRealtime] = useState([]);
   const [consolidatedTopPagesRealtime, setConsolidatedTopPagesRealtime] = useState([]);
-
-
   const [activeUsersPeriod, setActiveUsersPeriod] = useState([]);
-  const [topPagesPeriod, setTopPagesPeriod] = useState([]);
+  const [topPages, setTopPages] = useState({});
+  const [consolidatedTopPages, setConsolidatedTopPages] = useState([]);
+
+  // Obtenção dos dados das contas GA via Backend
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -45,6 +51,8 @@ const Dashboard = () => {
     fetchAccounts();
   }, []);
 
+  // Obtenção dos dados dos gráficos via Backend 
+
   const fetchData = async (email, showLoading = false) => {
     try {
       if (showLoading) setLoading(true);
@@ -59,7 +67,8 @@ const Dashboard = () => {
         consolidatedRealtimeTopPages,
         realtimeTopPages,
         active_users_period,
-        top_pages_period,
+        topPages,
+        consolidatedTopPages,
       } = res.data;
       
       setConsolidatedRealtimeUsers(consolidatedRealtimeUsers || 0);
@@ -67,7 +76,8 @@ const Dashboard = () => {
       setConsolidatedTopPagesRealtime(consolidatedRealtimeTopPages || []);
       setTopPagesRealtime(realtimeTopPages || {});
       setActiveUsersPeriod(active_users_period || []);
-      setTopPagesPeriod(top_pages_period || []);
+      setTopPages(topPages || {});
+      setConsolidatedTopPages(consolidatedTopPages || []);
       
     } catch (err) {
       console.error("Erro ao buscar dados do GA:", err);
@@ -75,6 +85,8 @@ const Dashboard = () => {
       if (showLoading) setLoading(false);
     }
   };
+
+  // Recarregamento automático da tela
 
   useEffect(() => {
     const email = localStorage.getItem("email");
@@ -87,11 +99,15 @@ const Dashboard = () => {
     return () => clearInterval(interval); // limpa o intervalo ao desmontar
   }, []);
 
+  // Loggout
+
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("email");
     window.location.href = "/login";
   };
+
+  // Filtragem UserActives (Reatime)
 
   const filteredData = useMemo(() => {
     if (selectedAccount === "Todas" && selectedProperty === "Todas") {
@@ -118,6 +134,8 @@ const Dashboard = () => {
     return filtered;
   }, [selectedAccount, selectedProperty, consolidatedRealtimeUsers, realtimeUsers]);
 
+  // Filtragem TopFivePages (Realtime)
+
   const filteredTopPagesRealtime = useMemo(() => {
     if (selectedAccount === "Todas" && selectedProperty === "Todas") {
       return consolidatedTopPagesRealtime;
@@ -128,12 +146,24 @@ const Dashboard = () => {
   
     return propertyData;
   }, [selectedAccount, selectedProperty, consolidatedTopPagesRealtime, topPagesRealtime]);
-  
 
+  // Filtragem TopFivePages (Period) 
+
+  const filteredTopPages = useMemo(() => {
+    if (selectedAccount === "Todas" && selectedProperty === "Todas") {
+      return consolidatedTopPages;
+    }
+  
+    const accountData = topPages[selectedAccount] || {};
+    const propertyData = accountData[selectedProperty] || [];
+  
+    return propertyData;
+  }, [selectedAccount, selectedProperty, consolidatedTopPages, topPages]); 
+  
   const accountOptions = Object.keys(realtimeUsers || {});
   const propertyOptions = selectedAccount !== "Todas"
     ? Object.keys(realtimeUsers[selectedAccount] || {})
-    : [];
+    : [];  
 
   return (
     <div className="dashboard-wrapper">
@@ -224,7 +254,7 @@ const Dashboard = () => {
                 labels: filteredTopPagesRealtime.map((p) => p.pagePath),
                 datasets: [
                   {
-                    label: "Visualizações",
+                    label: "Páginas/Posts (Mês atual)",
                     data: filteredTopPagesRealtime.map((p) => p.views),
                     backgroundColor: "rgb(37, 112, 253)",
                   },
@@ -257,11 +287,11 @@ const Dashboard = () => {
             <h2>TopFivePages (Period)</h2>
             <Bar
               data={{
-                labels: topPagesPeriod.filter((p) => p.host === selectedHost).map((p) => p.pagePath),
+                labels: filteredTopPages.map((p) => p.pagePath),
                 datasets: [
                   {
-                    label: "Visualizações",
-                    data: topPagesPeriod.filter((p) => p.host === selectedHost).map((p) => p.views),
+                    label: "Páginas/Posts (Mês atual)",
+                    data: filteredTopPages.map((p) => p.views),
                     backgroundColor: "#f59e0b",
                   },
                 ],
