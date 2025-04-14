@@ -12,3 +12,10 @@ google-api-python-client
 bcrypt 
 python-jose[cryptography] 
 python-dotenv
+httpx 
+pyjwt
+google-analytics-data
+google-analytics-data_v1beta
+PyJWT
+python-multipart
+authlib
