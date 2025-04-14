@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "./Accounts.css"; // Arquivo CSS para os estilos
 
-const Account = () => {
+const Accounts = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const goToHome = () => {
@@ -128,4 +128,4 @@ const Account = () => {
   );
 };
 
-export default Account;
+export default Accounts;

@@ -7,6 +7,7 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
   const navigate = useNavigate(); // Para navegação
 
   useEffect(() => {
@@ -17,16 +18,19 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("token", tokenFromUrl); // Salva token
       const decoded = jwtDecode(tokenFromUrl);
       setUser(decoded.email);
+      setToken(tokenFromUrl);
       window.history.replaceState({}, document.title, "/"); // Remove o token da URL
-      navigate("/home", { replace: true }); // Redireciona para a Home sem criar histórico
-    } else {
-      const token = localStorage.getItem("token");
-      if (token && !user) {
-        const decoded = jwtDecode(token);
+
+      navigate("/dashboard", { replace: true }); // Redireciona para a Home sem criar histórico
+    } else if (!user) {
+      const storedToken = localStorage.getItem("token");
+      if (storedToken) {
+        const decoded = jwtDecode(storedToken);
         setUser(decoded.email);
+        setToken(storedToken);
       }
     }
-  }, [navigate]); // Garantir que o efeito rode apenas com dependências seguras
+  }, [navigate, user]); // Garantir que o efeito rode apenas com dependências seguras
 
   const loginWithGoogle = async () => {
     const response = await axios.get("http://localhost:8000/api/auth/login");
@@ -40,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, token, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

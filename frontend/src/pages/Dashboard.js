@@ -5,21 +5,25 @@ import "chart.js/auto";
 import "./Dashboard.css";
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend, 
 } from 'chart.js';
+import { useContext } from "react";
+import { AuthContext } from "../components/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 const Dashboard = () => {
+
+  // Variáveis de estado da sessão 
+  const { user, token, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [userEmail, setUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
 
 // Variáveis de estado para os filtros
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState("Todas");
   const [selectedProperty, setSelectedProperty] = useState("Todas");
-
-// Variáveis de estado da sessão 
-
-  const [userEmail, setUserEmail] = useState("");
-  const [loading, setLoading] = useState(true);
 
 // Variáveis de estado dos gráficos
 
@@ -35,34 +39,41 @@ const Dashboard = () => {
   // Obtenção dos dados das contas GA via Backend
 
   useEffect(() => {
+    if (!user) {
+      // Redireciona para login se não estiver autenticado
+      navigate("/login");
+    }
+
+    if (!user || !token) return;
+
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("access_token");
-        const email = localStorage.getItem("email");
+        const email = user;
         setUserEmail(email);
         const accountsRes = await axios.get("http://localhost:8000/api/ga/accounts_ga", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAccounts(accountsRes.data);
-        await fetchData(email, true); // Fetch dados consolidados e individuais
+        await fetchData(email, token, true); // Fetch dados consolidados e individuais
       } catch (err) {
         console.error("Erro ao buscar dados iniciais:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchAccounts();
-  }, []);
+  }, [navigate, user, token]);
 
   // Obtenção dos dados dos gráficos via Backend 
 
-  const fetchData = async (email, showLoading = false) => {
+  const fetchData = async (email, token, showLoading = false) => {
     try {
       if (showLoading) setLoading(true);
 
       const res = await axios.get(`http://localhost:8000/api/ga/data_ga?email=${email}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const {
@@ -95,23 +106,16 @@ const Dashboard = () => {
   // Recarregamento automático da tela
 
   useEffect(() => {
-    const email = localStorage.getItem("email");
+    if (!user || !token) return;
+
     const interval = setInterval(() => {      
-      if (email) {
-        fetchData(email, false);
+      if (user) {
+        fetchData(user, token, false);
       }
     }, 30000); // 30 segundos
   
     return () => clearInterval(interval); // limpa o intervalo ao desmontar
-  }, []);
-
-  // Loggout
-
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("email");
-    window.location.href = "/login";
-  };
+  }, [user, token]);
 
   // Filtragem ActivesUsers (Reatime)
 
@@ -193,7 +197,7 @@ const Dashboard = () => {
         <h1>Gestão GA</h1>
         <div className="dashboard-user">
           <span>{userEmail}</span>
-          <button onClick={handleLogout}>Sair</button>
+          <button onClick={logout}>Sair</button>
         </div>
       </div>
 
