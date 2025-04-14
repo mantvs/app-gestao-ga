@@ -2,8 +2,9 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f9fafb;
+  background-color: #f7f8fb;
   color: #111827;
+  width: 100%
 }
 
 /* Wrapper geral do dashboard */
@@ -20,13 +21,16 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1rem;
+  margin: 18px 0 25px 0;
+  padding: 0.5% 4% 0.5% 4%;  
+  border-top: 1px solid #e5e7eb;
   border-bottom: 2px solid #e5e7eb;
+  background-color: #fff;
 }
 
 .dashboard-header h1 {
-  font-size: 1.8rem;
-  color: #1f2937;
+  font-size: 1.68rem;
+  color: #000;
 }
 
 .dashboard-user {
@@ -41,17 +45,31 @@ body {
 }
 
 .dashboard-user button {
-  background-color: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
+  background-color: #f7f8fb;
+  color: #000;
+  border: 1px solid;
+  border-color: #d1d5db;
+  padding: 0.6rem 1.3rem;
+  border-radius: 0.4rem;
+  font-size: 0.973rem;
+  font-weight: normal;
+  margin-bottom: 0.05rem;
 }
 
 .dashboard-user button:hover {
-  background-color: #dc2626;
+  padding: 0.6rem 1.3rem;
+  background-color: #f7f8fb;
+  border-color: #d4d2d2;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+  color: #b9bfc7;  
+  font-size: 0.978rem;
+  font-weight: normal;
+  margin-bottom: 0.05rem;
+}
+
+.username {
+  font-size: 15px;
 }
 
 /* Filtros */
@@ -67,19 +85,21 @@ body {
   flex-direction: column;
 }
 
-.filter-group label {
+.filter-group label button {
   font-size: 0.85rem;
   font-weight: 600;
   color: #6b7280;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.18rem;
 }
 
 .filter-group select {
-  padding: 0.4rem 0.6rem;
+  padding: 0.6rem 2rem 0.6rem 0.5rem;
   border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
+  border-radius: 0.4rem;
   background-color: white;
   color: #111827;
+  font-size: 0.972rem;
+  font-weight: normal;
 }
 
 /* Mensagem de loading */

@@ -64,6 +64,7 @@ const Dashboard = () => {
     };
 
     fetchAccounts();
+    console.log("Dashboard useEffect: user =", user, "| token =", token);
   }, [navigate, user, token]);
 
   // Obtenção dos dados dos gráficos via Backend 
@@ -193,37 +194,39 @@ const Dashboard = () => {
   
    return (
     <div className="dashboard-wrapper">
+      <div> <span className="username">{userEmail}</span></div>
       <div className="dashboard-header">
         <h1>Gestão GA</h1>
         <div className="dashboard-user">
-          <span>{userEmail}</span>
-          <button onClick={logout}>Sair</button>
+        <div className="dashboard-filters">
+            <div className="filter-group">
+              <label></label>
+              <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
+                <option value="Todas">Contas GA</option>
+                {accountOptions.map((acc) => (
+                  <option key={acc} value={acc}>{acc}</option>
+                ))}
+              </select>
+            </div>
+            <div className="filter-group">
+              <label></label>
+              {selectedAccount !== "Todas" && (
+                <select value={selectedProperty} onChange={(e) => setSelectedProperty(e.target.value)}>
+                  <option value="Todas">Propriedades (Site/Blog)</option>
+                  {propertyOptions.map((prop) => (
+                    <option key={prop} value={prop}>{prop}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <button className="filter-group" onClick={logout}>Sair</button>
+            </div>
+          </div>         
+          
         </div>
       </div>
-
-      <div className="dashboard-filters">
-        <div className="filter-group">
-          <label>Conta GA</label>
-          <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
-            <option value="Todas">Todas</option>
-            {accountOptions.map((acc) => (
-              <option key={acc} value={acc}>{acc}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label>Propriedade (Site/Blog)</label>
-          {selectedAccount !== "Todas" && (
-            <select value={selectedProperty} onChange={(e) => setSelectedProperty(e.target.value)}>
-              <option value="Todas">Todas</option>
-              {propertyOptions.map((prop) => (
-                <option key={prop} value={prop}>{prop}</option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
+      
 
       {loading ? (
 
