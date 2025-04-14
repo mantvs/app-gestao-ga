@@ -130,9 +130,10 @@ body {
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-  gap: 1rem;
+  gap: 3rem;
   flex: 1;
-  overflow-y: auto;
+  
+  
 }
 
 /* Card de gráfico */
@@ -144,6 +145,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  gap: 2rem;
+  
 }
 
 .card h2 {
@@ -155,7 +158,8 @@ body {
 
 /* Card que ocupa largura dupla (linhas maiores) */
 .card.wide {
-  grid-column: span 2;
+  grid-column: span 2;  
+  
 }
 
 /* Responsivo */

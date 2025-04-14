@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
-import { Bar } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import "chart.js/auto";
 import "./Dashboard.css";
 import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, Legend, 
@@ -267,15 +267,46 @@ const Dashboard = () => {
                 datasets: [
                   {
                     label: "Usuários Ativos (Em tempo real)",
-                    data: Array.isArray(filteredData) ? filteredData.map((item) => item.users) : [filteredData],
-                    backgroundColor: "rgb(37, 112, 253)",
+                    data: Array.isArray(filteredData)
+                      ? filteredData.map((item) => item.users)
+                      : [filteredData],
+                    backgroundColor: "rgba(37, 112, 253, 0.7)",
+                    borderRadius: 6,
+                    barThickness: 40,
                   },
                 ],
               }}
-              options={{ responsive: true }}
+              options={{
+                responsive: true,
+                indexAxis: "x", // <- mantém eixo X como padrão (colunas verticais)
+                plugins: {
+                  legend: {
+                    display: true,
+                  },
+                  tooltip: {
+                    enabled: true,
+                  },
+                },
+                scales: {
+                  x: {
+                    ticks: {
+                      maxRotation: 45,
+                      minRotation: 0,
+                      font: { size: 12 },
+                    },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    title: {
+                      display: false,
+                      text: "Usuários",
+                      font: { size: 14 },
+                    },
+                  },
+                },
+              }}
             />
           </div>
-
           <div className="card">
             <h2>TopFivePages (Realtime)</h2>
             <Bar
@@ -285,11 +316,57 @@ const Dashboard = () => {
                   {
                     label: "Páginas/Posts (Em tempo real)",
                     data: filteredTopPagesRealtime.map((p) => p.views),
-                    backgroundColor: "rgb(37, 112, 253)",
+                    backgroundColor: "rgba(37, 112, 253, 0.7)",
                   },
                 ],
               }}
-              options={{ responsive: true, indexAxis: "y" }}
+              options={{ responsive: true, indexAxis: "y", }}
+            />
+          </div>
+
+          <div className="card wide">
+            <h2>TopFivePages (Period)</h2>
+            <Bar
+              data={{
+                labels: filteredTopPages.map((p) => p.pagePath),
+                datasets: [
+                  {
+                    label: "Páginas/Posts (Mês atual)",
+                    data: filteredTopPages.map((p) => p.views),
+                    backgroundColor: "rgba(37, 112, 253, 0.7)",
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                indexAxis: "y",
+                scales: {
+                  x: {
+                    grid: {
+                      display: true,
+                    },
+                    ticks: {
+                      beginAtZero: true,
+                    },
+                  },
+                  y: {
+                    grid: {
+                      display: true,
+                    },
+                    ticks: {
+                      align: "start",
+                      font: {
+                        size: 12,
+                      },
+                    },
+                  },
+                },
+                plugins: {
+                  legend: {
+                    display: true,
+                  },
+                },
+              }}
             />
           </div>
 
@@ -302,14 +379,14 @@ const Dashboard = () => {
                   {
                     label: "Usuários Ativos",
                     data: filteredTraffic.map((item) => item.activeUsers),
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    backgroundColor: '#4D8AFF',
                     borderRadius: 6,
                   },
                 ],
               }}
               options={{ responsive: true,
                 plugins: {
-                  legend: { display: false },
+                  legend: { display: true },
                   tooltip: {
                     callbacks: {
                       label: (context) => `${context.raw} usuários`,
@@ -323,24 +400,7 @@ const Dashboard = () => {
                   },
                 }, }}
             />
-          </div>
-
-          <div className="card wide">
-            <h2>TopFivePages (Period)</h2>
-            <Bar
-              data={{
-                labels: filteredTopPages.map((p) => p.pagePath),
-                datasets: [
-                  {
-                    label: "Páginas/Posts (Mês atual)",
-                    data: filteredTopPages.map((p) => p.views),
-                    backgroundColor: "#f59e0b",
-                  },
-                ],
-              }}
-              options={{ responsive: true, indexAxis: "y" }}
-            />
-          </div>
+          </div>          
         </div>
       )}
     </div>
