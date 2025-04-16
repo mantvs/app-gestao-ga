@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
-from app.database import Base
+from app.database import Base, engine
 from datetime import datetime
 
 class GAAccount(Base):
@@ -23,3 +23,5 @@ class OauthCredentials(Base):
     user_id = Column(Integer, nullable=False)
     access_token = Column(String(255))
     refresh_token = Column(String(255))
+
+Base.metadata.create_all(bind=engine)
