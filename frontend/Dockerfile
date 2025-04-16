@@ -2,7 +2,14 @@
 FROM node:20 AS builder
 
 WORKDIR /app
+
 COPY . .
+
+# Substitui URLs nos arquivos JS
+RUN sed -i 's|http://localhost:8000/api|/api|g' src/components/AuthContext.js
+RUN sed -i 's|http://localhost:8000/api|/api|g' src/pages/Accounts.js
+RUN sed -i 's|http://localhost:8000/api|/api|g' src/pages/Dashboard.js
+
 RUN npm install
 RUN npm run build
 
@@ -15,8 +22,8 @@ RUN apk add --no-cache sed
 # Copia os arquivos da pasta build para o nginx
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Substitui URLs nos arquivos JS
-RUN find /usr/share/nginx/html/static/js -name "*.js" -exec sed -i 's|http://localhost:8000|http://5.189.177.211:8000|g' {} \;
+# Substitui a config padrão do NGINX por uma personalizada
+COPY nginx-homolog.conf /etc/nginx/conf.d/default.conf
 
 # Expõe a porta usada pelo NGINX
 EXPOSE 80

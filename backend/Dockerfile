@@ -13,7 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Substitui URLs hardcoded no código (ex: React localhost)
-RUN find . -type f -name "*.py" -exec sed -i 's|http://localhost:3000|http://analytics-homologacao.mantoti.com.br|g' {} \;
+RUN sed -i 's|http://localhost:3000|https://analytics-homologacao.mantoti.com.br|g' app/auth.py
 
 # Executa o Uvicorn apontando pro arquivo correto
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

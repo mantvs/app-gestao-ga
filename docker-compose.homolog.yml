@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  analytics-backend:
+    image: docker.io/mantoti/analytics-backend:homolog
+    container_name: analytics-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - analytics-db
+      - analytics-redis
+    env_file:
+      - .env.homolog
+    environment:
+      - DATABASE_URL=mysql+pymysql://analytics_high:RE3aP&!!fd2!@analytics-db:3305/analytics_ga
+      - REDIS_URL=redis://analytics-redis:6379/0
+    networks:
+      - analytics-network
+
+  analytics-frontend:
+    image: docker.io/mantoti/analytics-frontend:homolog
+    container_name: analytics-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - analytics-backend
+    networks:
+      - analytics-network
+
+  analytics-db:
+    image: mysql:8
+    container_name: analytics-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: hgTR5%s&5!!
+      MYSQL_DATABASE: analytics_ga
+      MYSQL_USER: analytics_high
+      MYSQL_PASSWORD: RE3aP&!!fd2! 
+    ports:
+      - "3305:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - analytics-network
+
+  analytics-redis:
+    image: redis:latest
+    container_name: analytics-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - analytics-network
+
+networks:
+  analytics-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
